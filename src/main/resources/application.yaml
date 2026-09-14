@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: neoguide
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: username
+    password: password
+  configuration:
+    host-front-end: http://localhost:4200
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: update
