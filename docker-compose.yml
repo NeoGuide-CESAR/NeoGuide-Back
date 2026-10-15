@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Container do Banco de Dados Relacional
+  neoguide-db:
+    image: postgres:16-alpine
+    container_name: neoguide-db
+    restart: always
+    environment:
+      POSTGRES_DB: neoguide_db
+      POSTGRES_USER: neoguide_user
+      POSTGRES_PASSWORD: neoguide_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neoguide_user -d neoguide_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - neoguide-net
+
+  # Container da API Spring Boot (Backend)
+  neoguide-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neoguide-api
+    restart: always
+    depends_on:
+      neoguide-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://neoguide-db:5432/neoguide_db
+      SPRING_DATASOURCE_USERNAME: neoguide_user
+      SPRING_DATASOURCE_PASSWORD: neoguide_password
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "false"
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - neoguide-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  neoguide-net:
+    driver: bridge
