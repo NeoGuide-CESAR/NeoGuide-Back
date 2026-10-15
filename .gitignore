@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Planner Ecosystem ###
+planner/
+backend-consolidado/
+.worktrees/
