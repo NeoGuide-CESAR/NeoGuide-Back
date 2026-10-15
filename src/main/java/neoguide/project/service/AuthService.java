@@ -1,5 +1,6 @@
 package neoguide.project.service;
 
+import neoguide.project.dto.LoginResponse;
 import neoguide.project.dto.LoginRequest;
 import neoguide.project.dto.RegisterRequest;
 import neoguide.project.dto.UserResponse;
@@ -7,6 +8,7 @@ import neoguide.project.exception.BusinessException;
 import neoguide.project.exception.UnauthorizedException;
 import neoguide.project.model.User;
 import neoguide.project.repository.UserRepository;
+import neoguide.project.security.jwt.JwtService;
 import neoguide.project.validation.Validator;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,10 +19,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Transactional
@@ -43,7 +47,7 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         validateLogin(request);
 
         String email = request.getEmail().trim().toLowerCase();
@@ -55,7 +59,8 @@ public class AuthService {
             throw new UnauthorizedException("E-mail ou senha inválidos");
         }
 
-        return UserResponse.from(user);
+        String token = jwtService.generateToken(user);
+        return new LoginResponse(token, "Bearer", UserResponse.from(user));
     }
 
     private void validateRegister(RegisterRequest request) {

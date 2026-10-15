@@ -16,3 +16,8 @@ spring:
     show-sql: false
   configuration:
     host-front-end: ${HOST_FRONT_END:http://localhost:4200}
+
+security:
+  jwt:
+    secret: ${SECURITY_JWT_SECRET:neoguide-super-secret-key-for-jwt-token-hmac-sha256-minimum-32-bytes}
+    expiration: ${SECURITY_JWT_EXPIRATION:86400000}
