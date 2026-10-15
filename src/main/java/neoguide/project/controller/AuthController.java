@@ -1,6 +1,7 @@
 package neoguide.project.controller;
 
 import neoguide.project.dto.LoginRequest;
+import neoguide.project.dto.LoginResponse;
 import neoguide.project.dto.RegisterRequest;
 import neoguide.project.dto.UserResponse;
 import neoguide.project.service.AuthService;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping({"/api/v1/auth", "/auth"})
 public class AuthController {
 
     private final AuthService authService;
@@ -27,7 +28,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@RequestBody(required = false) LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@RequestBody(required = false) LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 }
