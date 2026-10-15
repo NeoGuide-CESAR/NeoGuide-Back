@@ -5,6 +5,7 @@ package neoguide.project.model;
  */
 public enum ProjectStatus {
 
+    RASCUNHO("Rascunho"),
     EM_ANALISE("Em análise"),
     AGUARDANDO_CORRECAO("Aguardando correção"),
     APROVADO("Aprovado"),

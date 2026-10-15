@@ -2,6 +2,7 @@ package neoguide.project.controller;
 
 import com.jayway.jsonpath.JsonPath;
 import neoguide.project.model.User;
+import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,9 @@ class AuthControllerTest {
     private UserRepository userRepository;
 
     @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -39,6 +43,7 @@ class AuthControllerTest {
 
     @BeforeEach
     void cleanUp() {
+        projectRepository.deleteAll();
         userRepository.deleteAll();
     }
 

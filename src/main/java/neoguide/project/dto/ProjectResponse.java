@@ -19,6 +19,19 @@ public class ProjectResponse {
     private String municipio;
     private LocalDateTime dataSubmissao;
 
+    // Campos do DNA
+    private String tensaoFornecimento;
+    private boolean possuiComercial;
+    private boolean possuiVe;
+    private boolean possuiIncendio;
+    private Integer etapaAtual;
+    private String cep;
+    private String endereco;
+    private String bairro;
+    private String crea;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
     public ProjectResponse() {
     }
 
@@ -28,14 +41,31 @@ public class ProjectResponse {
         response.setProtocolo(project.getProtocolo());
         response.setTitulo(project.getTitulo());
         response.setDescricao(project.getDescricao());
-        response.setTipo(project.getTipo().name());
-        response.setTipoDescricao(project.getTipo().getDescricao());
-        response.setStatus(project.getStatus().name());
-        response.setStatusDescricao(project.getStatus().getDescricao());
+        if (project.getTipo() != null) {
+            response.setTipo(project.getTipo().name());
+            response.setTipoDescricao(project.getTipo().getDescricao());
+        }
+        if (project.getStatus() != null) {
+            response.setStatus(project.getStatus().name());
+            response.setStatusDescricao(project.getStatus().getDescricao());
+        }
         response.setNormaTecnica(project.getNormaTecnica());
         response.setResponsavel(project.getResponsavel());
         response.setMunicipio(project.getMunicipio());
         response.setDataSubmissao(project.getDataSubmissao());
+
+        response.setTensaoFornecimento(project.getTensaoFornecimento());
+        response.setPossuiComercial(project.isPossuiComercial());
+        response.setPossuiVe(project.isPossuiVe());
+        response.setPossuiIncendio(project.isPossuiIncendio());
+        response.setEtapaAtual(project.getEtapaAtual());
+        response.setCep(project.getCep());
+        response.setEndereco(project.getEndereco());
+        response.setBairro(project.getBairro());
+        response.setCrea(project.getCrea());
+        response.setCreatedAt(project.getCreatedAt());
+        response.setUpdatedAt(project.getUpdatedAt());
+
         return response;
     }
 
@@ -133,5 +163,93 @@ public class ProjectResponse {
 
     public void setDataSubmissao(LocalDateTime dataSubmissao) {
         this.dataSubmissao = dataSubmissao;
+    }
+
+    public String getTensaoFornecimento() {
+        return tensaoFornecimento;
+    }
+
+    public void setTensaoFornecimento(String tensaoFornecimento) {
+        this.tensaoFornecimento = tensaoFornecimento;
+    }
+
+    public boolean isPossuiComercial() {
+        return possuiComercial;
+    }
+
+    public void setPossuiComercial(boolean possuiComercial) {
+        this.possuiComercial = possuiComercial;
+    }
+
+    public boolean isPossuiVe() {
+        return possuiVe;
+    }
+
+    public void setPossuiVe(boolean possuiVe) {
+        this.possuiVe = possuiVe;
+    }
+
+    public boolean isPossuiIncendio() {
+        return possuiIncendio;
+    }
+
+    public void setPossuiIncendio(boolean possuiIncendio) {
+        this.possuiIncendio = possuiIncendio;
+    }
+
+    public Integer getEtapaAtual() {
+        return etapaAtual;
+    }
+
+    public void setEtapaAtual(Integer etapaAtual) {
+        this.etapaAtual = etapaAtual;
+    }
+
+    public String getCep() {
+        return cep;
+    }
+
+    public void setCep(String cep) {
+        this.cep = cep;
+    }
+
+    public String getEndereco() {
+        return endereco;
+    }
+
+    public void setEndereco(String endereco) {
+        this.endereco = endereco;
+    }
+
+    public String getBairro() {
+        return bairro;
+    }
+
+    public void setBairro(String bairro) {
+        this.bairro = bairro;
+    }
+
+    public String getCrea() {
+        return crea;
+    }
+
+    public void setCrea(String crea) {
+        this.crea = crea;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
