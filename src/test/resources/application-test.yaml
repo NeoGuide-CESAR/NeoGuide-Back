@@ -10,3 +10,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+
+security:
+  jwt:
+    secret: "neoguide-super-secret-key-for-jwt-token-hmac-sha256-minimum-32-bytes"
+    expiration: 86400000
