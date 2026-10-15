@@ -79,6 +79,27 @@ public class Validator {
         return this;
     }
 
+    /** Validação da tensão de fornecimento ("380_220V" ou "220_127V"). */
+    public Validator validVoltage(String field, String value) {
+        if (isBlank(value)) {
+            addError(field, "O campo é obrigatório");
+            return this;
+        }
+        String trimmed = value.trim();
+        if (!"380_220V".equals(trimmed) && !"220_127V".equals(trimmed)) {
+            addError(field, "Tensão de fornecimento inválida");
+        }
+        return this;
+    }
+
+    /** Validação genérica customizada. */
+    public Validator custom(String field, boolean isValid, String message) {
+        if (!isValid) {
+            addError(field, message);
+        }
+        return this;
+    }
+
     /** Verifica se dois campos possuem o mesmo valor (ex.: senha e confirmação). */
     public Validator sameAs(String field, String value, String other, String message) {
         if (value == null ? other != null : !value.equals(other)) {

@@ -63,6 +63,11 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
+        User maria = userRepository.findByEmail("maria@neoguide.com").orElse(null);
+        if (maria == null) {
+            maria = userRepository.findAll().stream().findFirst().orElse(null);
+        }
+
         LocalDateTime agora = LocalDateTime.now();
 
         List<Project> projects = List.of(
@@ -139,6 +144,13 @@ public class DataSeeder implements CommandLineRunner {
                         agora.minusDays(1)
                 )
         );
+
+        for (Project project : projects) {
+            project.setUser(maria);
+            project.setTensaoFornecimento("380_220V");
+            project.setCreatedAt(project.getDataSubmissao() != null ? project.getDataSubmissao() : agora);
+            project.setEtapaAtual(1);
+        }
 
         projectRepository.saveAll(projects);
     }
