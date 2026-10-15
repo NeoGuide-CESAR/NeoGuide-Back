@@ -30,18 +30,22 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final PasswordEncoder passwordEncoder;
+    private final neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder;
 
     public DataSeeder(UserRepository userRepository, ProjectRepository projectRepository,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                      neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.passwordEncoder = passwordEncoder;
+        this.normativeDataSeeder = normativeDataSeeder;
     }
 
     @Override
     public void run(String... args) {
         seedUsers();
         seedProjects();
+        normativeDataSeeder.seedAll();
     }
 
     private void seedUsers() {
