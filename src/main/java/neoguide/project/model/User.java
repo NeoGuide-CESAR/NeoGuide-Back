@@ -2,6 +2,8 @@ package neoguide.project.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,6 +25,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @Column(name = "cpf_cnpj", unique = true, length = 20)
+    private String cpfCnpj;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private UserRole role = UserRole.ROLE_PROJETISTA;
+
     @Column(nullable = false, length = 255)
     private String password;
 
@@ -36,6 +45,16 @@ public class User {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.role = UserRole.ROLE_PROJETISTA;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public User(String name, String email, String password, String cpfCnpj, UserRole role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.cpfCnpj = cpfCnpj;
+        this.role = role != null ? role : UserRole.ROLE_PROJETISTA;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -61,6 +80,22 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getCpfCnpj() {
+        return cpfCnpj;
+    }
+
+    public void setCpfCnpj(String cpfCnpj) {
+        this.cpfCnpj = cpfCnpj;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role != null ? role : UserRole.ROLE_PROJETISTA;
     }
 
     public String getPassword() {

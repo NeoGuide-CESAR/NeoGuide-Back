@@ -54,9 +54,9 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         List<User> users = List.of(
-                new User("Administrador", "admin@neoguide.com", passwordEncoder.encode("admin123")),
-                new User("Maria Silva", "maria@neoguide.com", passwordEncoder.encode("maria123")),
-                new User("João Souza", "joao@neoguide.com", passwordEncoder.encode("joao1234"))
+                new User("Administrador", "admin@neoguide.com", passwordEncoder.encode("admin123"), "00000000000", neoguide.project.model.UserRole.ROLE_ANALISTA),
+                new User("Maria Silva", "maria@neoguide.com", passwordEncoder.encode("maria123"), "11111111111", neoguide.project.model.UserRole.ROLE_PROJETISTA),
+                new User("João Souza", "joao@neoguide.com", passwordEncoder.encode("joao1234"), "22222222222", neoguide.project.model.UserRole.ROLE_PROJETISTA)
         );
 
         userRepository.saveAll(users);
