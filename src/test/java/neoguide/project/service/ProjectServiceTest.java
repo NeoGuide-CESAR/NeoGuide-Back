@@ -3,14 +3,22 @@ package neoguide.project.service;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.ResidentialStageRequest;
+import neoguide.project.dto.ResidentialStageResponse;
+import neoguide.project.dto.ResidentialTypologyItemRequest;
+import neoguide.project.engine.ResidentialCalculationEngine;
+import neoguide.project.engine.model.ResidentialCalculationResult;
+import neoguide.project.engine.model.ResidentialTypologyOutput;
 import neoguide.project.exception.ForbiddenException;
 import neoguide.project.exception.ResourceNotFoundException;
 import neoguide.project.exception.ValidationException;
 import neoguide.project.model.Project;
 import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.ProjectType;
+import neoguide.project.model.ResidentialTypology;
 import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
+import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +29,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +48,12 @@ class ProjectServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ResidentialTypologyRepository residentialTypologyRepository;
+
+    @Mock
+    private ResidentialCalculationEngine residentialCalculationEngine;
 
     @InjectMocks
     private ProjectService projectService;
@@ -261,5 +276,183 @@ class ProjectServiceTest {
                 projectService.createProject(reqSemMunicipio, 10L)
         );
         assertTrue(ex.getErrors().containsKey("municipio"));
+    }
+
+    @Test
+    @DisplayName("Deve salvar etapa residencial com sucesso, excluir registros anteriores, avançar etapa e retornar métricas")
+    void shouldSaveResidentialStageSuccessfully() {
+        Project project = new Project();
+        project.setId(100L);
+        project.setUser(user);
+        project.setEtapaAtual(1);
+
+        ResidentialTypologyItemRequest item1 = new ResidentialTypologyItemRequest("Tipo A", 6L, new BigDecimal("65.00"), 50, false);
+        ResidentialTypologyItemRequest item2 = new ResidentialTypologyItemRequest("Tipo B", 8L, new BigDecimal("78.00"), 50, false);
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(item1, item2));
+
+        ResidentialTypologyOutput out1 = new ResidentialTypologyOutput("Tipo A", new BigDecimal("65.00"), 50, new BigDecimal("1.47"), new BigDecimal("73.50"));
+        ResidentialTypologyOutput out2 = new ResidentialTypologyOutput("Tipo B", new BigDecimal("78.00"), 50, new BigDecimal("1.80"), new BigDecimal("90.00"));
+        ResidentialCalculationResult calcResult = new ResidentialCalculationResult(
+                100,
+                new BigDecimal("163.50"),
+                new BigDecimal("0.6823"),
+                new BigDecimal("111.56"),
+                new BigDecimal("1.10"),
+                new BigDecimal("122.72"),
+                false,
+                List.of(out1, out2)
+        );
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(project));
+        when(residentialCalculationEngine.calculate(anyList())).thenReturn(calcResult);
+
+        ResidentialStageResponse response = projectService.saveResidentialStage(100L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(100L, response.getProjectId());
+        assertEquals(2, response.getEtapaAtual());
+        assertEquals(100, response.getTotalApartamentos());
+        assertEquals(new BigDecimal("163.50"), response.getDemandaResidencialBrutaDrKva());
+        assertEquals(new BigDecimal("0.6823"), response.getFatorCoincidenciaFc());
+        assertEquals(new BigDecimal("1.10"), response.getFatorSegurancaFr());
+        assertEquals(new BigDecimal("122.72"), response.getDemandaResidencialFinalDrfKva());
+
+        verify(residentialTypologyRepository).deleteByProjectId(100L);
+        verify(residentialTypologyRepository).flush();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ResidentialTypology>> captor = ArgumentCaptor.forClass(List.class);
+        verify(residentialTypologyRepository).saveAll(captor.capture());
+        List<ResidentialTypology> savedList = captor.getValue();
+        assertEquals(2, savedList.size());
+
+        ResidentialTypology saved1 = savedList.get(0);
+        assertEquals(project, saved1.getProject());
+        assertEquals("Tipo A", saved1.getNome());
+        assertEquals(6L, saved1.getCatalogoFaixaId());
+        assertEquals(new BigDecimal("65.00"), saved1.getAreaUtilM2());
+        assertEquals(50, saved1.getQuantidadeUnidades());
+        assertFalse(saved1.isSmartStudio());
+        assertEquals(new BigDecimal("1.47"), saved1.getDemandaUnitariaKva());
+        assertEquals(new BigDecimal("73.50"), saved1.getDemandaTotalTipologiaKva());
+
+        ResidentialTypology saved2 = savedList.get(1);
+        assertEquals("Tipo B", saved2.getNome());
+        assertEquals(new BigDecimal("1.80"), saved2.getDemandaUnitariaKva());
+        assertEquals(new BigDecimal("90.00"), saved2.getDemandaTotalTipologiaKva());
+
+        assertEquals(2, project.getEtapaAtual());
+        assertNotNull(project.getUpdatedAt());
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("Deve preservar etapaAtual superior quando projeto já estiver em etapa mais avançada")
+    void shouldPreserveHigherStageWhenUpdatingResidentialStage() {
+        Project project = new Project();
+        project.setId(100L);
+        project.setUser(user);
+        project.setEtapaAtual(4);
+
+        ResidentialTypologyItemRequest item = new ResidentialTypologyItemRequest("Studio", null, new BigDecimal("35.00"), 20, true);
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(item));
+
+        ResidentialTypologyOutput out = new ResidentialTypologyOutput("Studio", new BigDecimal("35.00"), 20, new BigDecimal("1.20"), new BigDecimal("24.00"));
+        ResidentialCalculationResult calcResult = new ResidentialCalculationResult(
+                20,
+                new BigDecimal("24.00"),
+                new BigDecimal("0.9000"),
+                new BigDecimal("21.60"),
+                new BigDecimal("1.50"),
+                new BigDecimal("32.40"),
+                true,
+                List.of(out)
+        );
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(project));
+        when(residentialCalculationEngine.calculate(anyList())).thenReturn(calcResult);
+
+        ResidentialStageResponse response = projectService.saveResidentialStage(100L, request, 10L);
+
+        assertEquals(4, response.getEtapaAtual());
+        assertEquals(4, project.getEtapaAtual());
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("Deve lançar ForbiddenException ao tentar salvar tipologias em projeto de outro usuário")
+    void shouldThrowForbiddenWhenUserIsNotOwnerOnResidentialStage() {
+        User outro = new User("Outro Projetista", "outro@teste.com", "senha");
+        outro.setId(99L);
+
+        Project project = new Project();
+        project.setId(100L);
+        project.setUser(outro);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(project));
+
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("50.00"), 10, false)
+        ));
+
+        ForbiddenException ex = assertThrows(ForbiddenException.class, () ->
+                projectService.saveResidentialStage(100L, request, 10L)
+        );
+        assertTrue(ex.getMessage().contains("Acesso negado"));
+        verify(residentialTypologyRepository, never()).deleteByProjectId(anyLong());
+    }
+
+    @Test
+    @DisplayName("Deve lançar ResourceNotFoundException quando projeto não existir na etapa residencial")
+    void shouldThrowNotFoundWhenProjectDoesNotExistOnResidentialStage() {
+        when(projectRepository.findById(999L)).thenReturn(Optional.empty());
+
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("50.00"), 10, false)
+        ));
+
+        assertThrows(ResourceNotFoundException.class, () ->
+                projectService.saveResidentialStage(999L, request, 10L)
+        );
+        verify(residentialTypologyRepository, never()).deleteByProjectId(anyLong());
+    }
+
+    @Test
+    @DisplayName("Deve lançar ValidationException quando payload da etapa residencial for inválido")
+    void shouldThrowValidationExceptionWhenPayloadIsInvalidOnResidentialStage() {
+        // 1. Request nula / lista vazia
+        ResidentialStageRequest reqVazia = new ResidentialStageRequest(List.of());
+        ValidationException exVazia = assertThrows(ValidationException.class, () ->
+                projectService.saveResidentialStage(100L, reqVazia, 10L)
+        );
+        assertTrue(exVazia.getErrors().containsKey("tipologias"));
+
+        // 2. Área útil negativa ou zero
+        ResidentialStageRequest reqAreaInvalida = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest("Tipo Invalido", null, new BigDecimal("-5.00"), 10, false)
+        ));
+        ValidationException exArea = assertThrows(ValidationException.class, () ->
+                projectService.saveResidentialStage(100L, reqAreaInvalida, 10L)
+        );
+        assertTrue(exArea.getErrors().containsKey("tipologias[0].areaUtilM2"));
+
+        // 3. Quantidade zero ou negativa
+        ResidentialStageRequest reqQuantInvalida = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest("Tipo Invalido", null, new BigDecimal("50.00"), 0, false)
+        ));
+        ValidationException exQuant = assertThrows(ValidationException.class, () ->
+                projectService.saveResidentialStage(100L, reqQuantInvalida, 10L)
+        );
+        assertTrue(exQuant.getErrors().containsKey("tipologias[0].quantidadeUnidades"));
+
+        // 4. Nome em branco
+        ResidentialStageRequest reqNomeInvalido = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest("   ", null, new BigDecimal("50.00"), 10, false)
+        ));
+        ValidationException exNome = assertThrows(ValidationException.class, () ->
+                projectService.saveResidentialStage(100L, reqNomeInvalido, 10L)
+        );
+        assertTrue(exNome.getErrors().containsKey("tipologias[0].nome"));
     }
 }

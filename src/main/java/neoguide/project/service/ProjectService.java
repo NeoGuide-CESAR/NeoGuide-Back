@@ -3,19 +3,29 @@ package neoguide.project.service;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.ResidentialStageRequest;
+import neoguide.project.dto.ResidentialStageResponse;
+import neoguide.project.dto.ResidentialTypologyItemRequest;
+import neoguide.project.engine.ResidentialCalculationEngine;
+import neoguide.project.engine.model.ResidentialCalculationResult;
+import neoguide.project.engine.model.ResidentialTypologyItem;
+import neoguide.project.engine.model.ResidentialTypologyOutput;
 import neoguide.project.exception.BusinessException;
 import neoguide.project.exception.ForbiddenException;
 import neoguide.project.exception.ResourceNotFoundException;
 import neoguide.project.model.Project;
 import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.ProjectType;
+import neoguide.project.model.ResidentialTypology;
 import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
+import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.validation.Validator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,10 +37,17 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ResidentialTypologyRepository residentialTypologyRepository;
+    private final ResidentialCalculationEngine residentialCalculationEngine;
 
-    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository) {
+    public ProjectService(ProjectRepository projectRepository,
+                          UserRepository userRepository,
+                          ResidentialTypologyRepository residentialTypologyRepository,
+                          ResidentialCalculationEngine residentialCalculationEngine) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.residentialTypologyRepository = residentialTypologyRepository;
+        this.residentialCalculationEngine = residentialCalculationEngine;
     }
 
     /**
@@ -170,5 +187,97 @@ public class ProjectService {
             }
         }
         return ProjectType.LIGACAO_NOVA;
+    }
+
+    /**
+     * Salva as tipologias residenciais da Etapa 2 de forma atômica e idempotente.
+     */
+    @Transactional
+    public ResidentialStageResponse saveResidentialStage(Long projectId, ResidentialStageRequest request, Long currentUserId) {
+        validateResidentialStageRequest(request);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        List<ResidentialTypologyItem> engineItems = new ArrayList<>();
+        for (ResidentialTypologyItemRequest item : request.getTipologias()) {
+            engineItems.add(new ResidentialTypologyItem(
+                    item.getNome() != null ? item.getNome().trim() : "",
+                    item.getAreaUtilM2(),
+                    item.getQuantidadeUnidades(),
+                    null,
+                    item.isSmartStudio()
+            ));
+        }
+        ResidentialCalculationResult calcResult = residentialCalculationEngine.calculate(engineItems);
+
+        residentialTypologyRepository.deleteByProjectId(projectId);
+        residentialTypologyRepository.flush();
+
+        List<ResidentialTypologyOutput> outputs = calcResult.getTipologias();
+        List<ResidentialTypology> entitiesToSave = new ArrayList<>();
+        for (int i = 0; i < request.getTipologias().size(); i++) {
+            ResidentialTypologyItemRequest item = request.getTipologias().get(i);
+            ResidentialTypologyOutput out = outputs.get(i);
+            BigDecimal demandaUnitaria = out.demandaUnitariaDi();
+            BigDecimal demandaTotal = out.demandaSubtotal();
+
+            ResidentialTypology entity = new ResidentialTypology(
+                    project,
+                    item.getCatalogoFaixaId(),
+                    item.getNome().trim(),
+                    item.getAreaUtilM2(),
+                    item.getQuantidadeUnidades(),
+                    item.isSmartStudio(),
+                    demandaUnitaria,
+                    demandaTotal
+            );
+            entitiesToSave.add(entity);
+        }
+        residentialTypologyRepository.saveAll(entitiesToSave);
+
+        int currentStage = project.getEtapaAtual() != null ? project.getEtapaAtual() : 1;
+        project.setEtapaAtual(Math.max(currentStage, 2));
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
+
+        return new ResidentialStageResponse(
+                true,
+                project.getId(),
+                project.getEtapaAtual(),
+                calcResult.getTotalApartamentos(),
+                calcResult.getDemandaBrutaDr(),
+                calcResult.getFatorCoincidenciaFc(),
+                calcResult.getFatorSegurancaFr(),
+                calcResult.getDemandaFinalDrf()
+        );
+    }
+
+    private void validateResidentialStageRequest(ResidentialStageRequest request) {
+        Validator validator = Validator.create();
+        if (request == null || request.getTipologias() == null || request.getTipologias().isEmpty()) {
+            validator.custom("tipologias", false, "A lista de tipologias residenciais não pode ser vazia");
+        } else {
+            for (int i = 0; i < request.getTipologias().size(); i++) {
+                ResidentialTypologyItemRequest item = request.getTipologias().get(i);
+                String prefix = "tipologias[" + i + "].";
+                if (item == null) {
+                    validator.custom(prefix, false, "Item de tipologia não pode ser nulo");
+                    continue;
+                }
+                validator.required(prefix + "nome", item.getNome());
+                if (item.getAreaUtilM2() == null || item.getAreaUtilM2().compareTo(BigDecimal.ZERO) <= 0) {
+                    validator.custom(prefix + "areaUtilM2", false, "A área útil privativa deve ser estritamente maior que zero");
+                }
+                if (item.getQuantidadeUnidades() == null || item.getQuantidadeUnidades() <= 0) {
+                    validator.custom(prefix + "quantidadeUnidades", false, "A quantidade de unidades deve ser um número positivo maior que zero");
+                }
+            }
+        }
+        validator.validate();
     }
 }
