@@ -13,6 +13,8 @@ import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.validation.Validator;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -115,7 +117,57 @@ public class ProjectService {
     }
 
     /**
-     * Lista todos os projetos do usuário logado ordenados pela data de criação decrescente.
+     * Lista projetos paginados com filtros opcionais de status e busca textual.
+     */
+    @Transactional(readOnly = true)
+    public Page<ProjectResponse> listByUserWithFilters(Long userId, ProjectStatus status, String search, Pageable pageable) {
+        String termo = (search != null && !search.isBlank()) ? search.trim() : null;
+        Page<Project> page = projectRepository.findByUserWithFilters(userId, status, termo, pageable);
+        return page.map(ProjectResponse::from);
+    }
+
+    /**
+     * Duplica um projeto existente para o usuário logado com novo protocolo e status RASCUNHO.
+     */
+    @Transactional
+    public ProjectResponse duplicateProject(Long projectId, Long currentUserId) {
+        Project original = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (original.getUser() == null || !original.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        Project copy = new Project();
+        copy.setUser(original.getUser());
+        copy.setProtocolo(generateNextProtocolo());
+        copy.setTitulo(original.getTitulo() + " (cópia)");
+        copy.setDescricao(original.getDescricao());
+        copy.setTipo(original.getTipo());
+        copy.setStatus(ProjectStatus.RASCUNHO);
+        copy.setNormaTecnica(original.getNormaTecnica());
+        copy.setResponsavel(original.getResponsavel());
+        copy.setMunicipio(original.getMunicipio());
+        copy.setTensaoFornecimento(original.getTensaoFornecimento());
+        copy.setPossuiComercial(original.isPossuiComercial());
+        copy.setPossuiVe(original.isPossuiVe());
+        copy.setPossuiIncendio(original.isPossuiIncendio());
+        copy.setEtapaAtual(1);
+        copy.setCep(original.getCep());
+        copy.setEndereco(original.getEndereco());
+        copy.setBairro(original.getBairro());
+        copy.setCrea(original.getCrea());
+
+        LocalDateTime now = LocalDateTime.now();
+        copy.setCreatedAt(now);
+        copy.setDataSubmissao(now);
+
+        Project saved = projectRepository.save(copy);
+        return ProjectResponse.from(saved);
+    }
+
+    /**
+     * Lista todos os projetos do usuário logado ordenados pela data de criação decrescente (compatibilidade).
      */
     @Transactional(readOnly = true)
     public List<ProjectResponse> listByUser(Long currentUserId) {
