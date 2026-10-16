@@ -7,9 +7,9 @@ public class CreateProjectRequest {
     private String tipo;
     private String tipoEdificacao;
     private String tensaoFornecimento;
-    private boolean possuiComercial;
-    private boolean possuiVe;
-    private boolean possuiIncendio;
+    private Boolean possuiComercial = false;
+    private Boolean possuiVe = false;
+    private Boolean possuiIncendio = false;
     private String responsavel;
     private String crea;
     private String municipio;
@@ -21,16 +21,16 @@ public class CreateProjectRequest {
     }
 
     public CreateProjectRequest(String titulo, String descricao, String tipo, String tensaoFornecimento,
-                                boolean possuiComercial, boolean possuiVe, boolean possuiIncendio,
+                                Boolean possuiComercial, Boolean possuiVe, Boolean possuiIncendio,
                                 String responsavel, String crea, String municipio,
                                 String cep, String endereco, String bairro) {
         this.titulo = titulo;
         this.descricao = descricao;
         this.tipo = tipo;
         this.tensaoFornecimento = tensaoFornecimento;
-        this.possuiComercial = possuiComercial;
-        this.possuiVe = possuiVe;
-        this.possuiIncendio = possuiIncendio;
+        this.possuiComercial = possuiComercial != null ? possuiComercial : false;
+        this.possuiVe = possuiVe != null ? possuiVe : false;
+        this.possuiIncendio = possuiIncendio != null ? possuiIncendio : false;
         this.responsavel = responsavel;
         this.crea = crea;
         this.municipio = municipio;
@@ -80,27 +80,39 @@ public class CreateProjectRequest {
     }
 
     public boolean isPossuiComercial() {
+        return Boolean.TRUE.equals(possuiComercial);
+    }
+
+    public Boolean getPossuiComercial() {
         return possuiComercial;
     }
 
-    public void setPossuiComercial(boolean possuiComercial) {
-        this.possuiComercial = possuiComercial;
+    public void setPossuiComercial(Boolean possuiComercial) {
+        this.possuiComercial = possuiComercial != null ? possuiComercial : false;
     }
 
     public boolean isPossuiVe() {
+        return Boolean.TRUE.equals(possuiVe);
+    }
+
+    public Boolean getPossuiVe() {
         return possuiVe;
     }
 
-    public void setPossuiVe(boolean possuiVe) {
-        this.possuiVe = possuiVe;
+    public void setPossuiVe(Boolean possuiVe) {
+        this.possuiVe = possuiVe != null ? possuiVe : false;
     }
 
     public boolean isPossuiIncendio() {
+        return Boolean.TRUE.equals(possuiIncendio);
+    }
+
+    public Boolean getPossuiIncendio() {
         return possuiIncendio;
     }
 
-    public void setPossuiIncendio(boolean possuiIncendio) {
-        this.possuiIncendio = possuiIncendio;
+    public void setPossuiIncendio(Boolean possuiIncendio) {
+        this.possuiIncendio = possuiIncendio != null ? possuiIncendio : false;
     }
 
     public String getResponsavel() {

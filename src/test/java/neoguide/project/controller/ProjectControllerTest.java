@@ -98,6 +98,28 @@ class ProjectControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/v1/projects com campos booleanos opcionais omitidos deve deserializar corretamente com default false e retornar 201")
+    void shouldCreateProjectSuccessfullyWhenOptionalBooleanFieldsAreOmitted() throws Exception {
+        String jsonPayload = """
+                {
+                  "titulo": "Projeto X",
+                  "municipio": "Recife",
+                  "tensaoFornecimento": "380_220V"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/projects")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.protocolo", matchesPattern("^PRJ-\\d{4}-\\d{4}$")))
+                .andExpect(jsonPath("$.titulo", is("Projeto X")))
+                .andExpect(jsonPath("$.status", is("RASCUNHO")));
+    }
+
+    @Test
     @DisplayName("POST /api/v1/projects sem token de autorização deve retornar 401 Unauthorized")
     void shouldReturn401WhenCreatingWithoutToken() throws Exception {
         CreateProjectRequest request = new CreateProjectRequest();
