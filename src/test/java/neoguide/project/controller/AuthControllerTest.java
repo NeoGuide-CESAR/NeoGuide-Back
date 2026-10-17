@@ -2,6 +2,7 @@ package neoguide.project.controller;
 
 import com.jayway.jsonpath.JsonPath;
 import neoguide.project.model.User;
+import neoguide.project.model.UserRole;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -67,7 +69,57 @@ class AuthControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.name", is("Carlos Projetista")))
-                .andExpect(jsonPath("$.email", is("carlos@empresa.com")));
+                .andExpect(jsonPath("$.email", is("carlos@empresa.com")))
+                .andExpect(jsonPath("$.role", is("ROLE_PROJETISTA")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/register deve cadastrar usuário com CPF e role ANALISTA")
+    void shouldRegisterUserWithCpfAndRoleSuccessfully() throws Exception {
+        String body = """
+                {
+                    "name": "Mariana Analista",
+                    "email": "mariana@concessionaria.com",
+                    "cpfCnpj": "123.456.789-01",
+                    "role": "ROLE_ANALISTA",
+                    "password": "SenhaForte@123",
+                    "confirmPassword": "SenhaForte@123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.name", is("Mariana Analista")))
+                .andExpect(jsonPath("$.email", is("mariana@concessionaria.com")))
+                .andExpect(jsonPath("$.cpfCnpj", is("12345678901")))
+                .andExpect(jsonPath("$.role", is("ROLE_ANALISTA")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/register deve retornar 409 Conflict ao registrar CPF/CNPJ duplicado")
+    void shouldReturn409ConflictWhenRegisteringDuplicateCpf() throws Exception {
+        User existingUser = new User("Existente", "existente@empresa.com", passwordEncoder.encode("SenhaForte@123"), "12345678901", UserRole.ROLE_PROJETISTA);
+        userRepository.save(existingUser);
+
+        String body = """
+                {
+                    "name": "Novo Usuário",
+                    "email": "novo@empresa.com",
+                    "cpfCnpj": "123.456.789-01",
+                    "password": "SenhaForte@123",
+                    "confirmPassword": "SenhaForte@123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.message", is("CPF/CNPJ já cadastrado")));
     }
 
     @Test
@@ -89,8 +141,79 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.tipo", is("Bearer")))
+                .andExpect(jsonPath("$.role", is("ROLE_PROJETISTA")))
                 .andExpect(jsonPath("$.usuario.name", is("Ana Projetista")))
-                .andExpect(jsonPath("$.usuario.email", is("ana@empresa.com")));
+                .andExpect(jsonPath("$.usuario.email", is("ana@empresa.com")))
+                .andExpect(jsonPath("$.usuario.role", is("ROLE_PROJETISTA")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/login flexível via campo 'login' como e-mail")
+    void shouldLoginSuccessfullyWithLoginFieldAsEmail() throws Exception {
+        User user = new User("Bruno Projetista", "bruno@empresa.com", passwordEncoder.encode("SenhaForte@123"));
+        userRepository.save(user);
+
+        String loginBody = """
+                {
+                    "login": "bruno@empresa.com",
+                    "password": "SenhaForte@123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.usuario.email", is("bruno@empresa.com")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/login flexível via CPF sem máscara e com validação da claim role no token")
+    void shouldLoginSuccessfullyWithCpfWithoutMask() throws Exception {
+        User user = new User("Clara Analista", "clara@concessionaria.com", passwordEncoder.encode("SenhaForte@123"), "98765432100", UserRole.ROLE_ANALISTA);
+        userRepository.save(user);
+
+        String loginBody = """
+                {
+                    "login": "98765432100",
+                    "password": "SenhaForte@123"
+                }
+                """;
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.role", is("ROLE_ANALISTA")))
+                .andExpect(jsonPath("$.usuario.cpfCnpj", is("98765432100")))
+                .andExpect(jsonPath("$.usuario.role", is("ROLE_ANALISTA")))
+                .andReturn();
+
+        String token = JsonPath.read(result.getResponse().getContentAsString(), "$.token");
+        assertEquals("ROLE_ANALISTA", jwtService.extractRole(token));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/login flexível via CPF com máscara")
+    void shouldLoginSuccessfullyWithCpfWithMask() throws Exception {
+        User user = new User("Clara Analista", "clara@concessionaria.com", passwordEncoder.encode("SenhaForte@123"), "98765432100", UserRole.ROLE_ANALISTA);
+        userRepository.save(user);
+
+        String loginBody = """
+                {
+                    "login": "987.654.321-00",
+                    "password": "SenhaForte@123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.usuario.email", is("clara@concessionaria.com")));
     }
 
     @Test

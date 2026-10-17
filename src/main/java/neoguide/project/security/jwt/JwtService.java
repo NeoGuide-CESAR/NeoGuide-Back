@@ -5,12 +5,14 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import neoguide.project.model.User;
+import neoguide.project.model.UserRole;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class JwtService {
@@ -28,12 +30,15 @@ public class JwtService {
     public String generateToken(User user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
+        String roleName = user.getRole() != null ? user.getRole().name() : UserRole.ROLE_PROJETISTA.name();
 
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("userId", user.getId())
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
+                .claim("role", roleName)
+                .claim("roles", List.of(roleName))
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -56,6 +61,32 @@ public class JwtService {
             return email;
         }
         return claims.getSubject();
+    }
+
+    public String extractRole(String token) {
+        Claims claims = extractAllClaims(token);
+        String role = claims.get("role", String.class);
+        if (role != null && !role.isBlank()) {
+            return role;
+        }
+        Object rolesObj = claims.get("roles");
+        if (rolesObj instanceof List<?> list && !list.isEmpty()) {
+            return list.getFirst().toString();
+        }
+        return null;
+    }
+
+    public List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        Object rolesObj = claims.get("roles");
+        if (rolesObj instanceof List<?> list) {
+            return list.stream().map(Object::toString).toList();
+        }
+        String role = claims.get("role", String.class);
+        if (role != null && !role.isBlank()) {
+            return List.of(role);
+        }
+        return List.of();
     }
 
     public Long extractUserId(String token) {
