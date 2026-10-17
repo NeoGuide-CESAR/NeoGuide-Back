@@ -20,6 +20,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -161,6 +166,139 @@ class ProjectServiceTest {
         assertEquals("PRJ-2026-0002", result.get(0).getProtocolo());
         assertEquals("PRJ-2026-0001", result.get(1).getProtocolo());
         verify(projectRepository).findAllByUserIdOrderByCreatedAtDesc(10L);
+    }
+
+    @Test
+    @DisplayName("Deve listar projetos com paginação, filtro de status e termo de busca")
+    void shouldListProjectsWithPaginationAndFilters() {
+        Project p = new Project();
+        p.setId(1L);
+        p.setProtocolo("PRJ-2026-0001");
+        p.setTitulo("Edifício Solar Central");
+        p.setUser(user);
+        p.setStatus(ProjectStatus.RASCUNHO);
+        p.setMunicipio("Recife");
+        p.setTensaoFornecimento("380_220V");
+        p.setCreatedAt(LocalDateTime.now());
+
+        Pageable pageable = PageRequest.of(0, 5, Sort.by("createdAt").descending());
+        Page<Project> page = new PageImpl<>(List.of(p), pageable, 1);
+
+        when(projectRepository.findByUserWithFilters(eq(10L), eq(ProjectStatus.RASCUNHO), eq("Solar"), eq(pageable)))
+                .thenReturn(page);
+
+        Page<ProjectResponse> result = projectService.listByUserWithFilters(10L, ProjectStatus.RASCUNHO, "Solar", pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        assertEquals("PRJ-2026-0001", result.getContent().get(0).getProtocolo());
+        assertEquals("Edifício Solar Central", result.getContent().get(0).getTitulo());
+        verify(projectRepository).findByUserWithFilters(10L, ProjectStatus.RASCUNHO, "Solar", pageable);
+    }
+
+    @Test
+    @DisplayName("Deve listar projetos com termo de busca em branco passando null para o repository")
+    void shouldListProjectsWithBlankSearchPassingNull() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Project> page = new PageImpl<>(List.of(), pageable, 0);
+
+        when(projectRepository.findByUserWithFilters(eq(10L), isNull(), isNull(), eq(pageable)))
+                .thenReturn(page);
+
+        Page<ProjectResponse> result = projectService.listByUserWithFilters(10L, null, "   ", pageable);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+        verify(projectRepository).findByUserWithFilters(10L, null, null, pageable);
+    }
+
+    @Test
+    @DisplayName("Deve duplicar projeto com sucesso gerando novo protocolo e sufixo (cópia)")
+    void shouldDuplicateProjectSuccessfully() {
+        Project original = new Project();
+        original.setId(50L);
+        original.setProtocolo("PRJ-2026-0001");
+        original.setTitulo("Projeto Matriz");
+        original.setDescricao("Descrição detalhada");
+        original.setTipo(ProjectType.LIGACAO_NOVA);
+        original.setStatus(ProjectStatus.APROVADO);
+        original.setEtapaAtual(4);
+        original.setUser(user);
+        original.setNormaTecnica("NBR 5410");
+        original.setResponsavel("Engenheiro Teste");
+        original.setMunicipio("Recife");
+        original.setTensaoFornecimento("380_220V");
+        original.setPossuiComercial(true);
+        original.setPossuiVe(true);
+        original.setPossuiIncendio(false);
+        original.setCep("50000-000");
+        original.setEndereco("Rua do Sol, 50");
+        original.setBairro("Boa Vista");
+        original.setCrea("CREA-12345");
+
+        when(projectRepository.findById(50L)).thenReturn(Optional.of(original));
+        int year = LocalDate.now().getYear();
+        when(projectRepository.findLastProtocoloByPrefix("PRJ-" + year + "-%"))
+                .thenReturn(Optional.of(String.format("PRJ-%d-0005", year)));
+
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+            Project p = invocation.getArgument(0);
+            p.setId(51L);
+            return p;
+        });
+
+        ProjectResponse response = projectService.duplicateProject(50L, 10L);
+
+        assertNotNull(response);
+        assertEquals(51L, response.getId());
+        assertEquals("Projeto Matriz (cópia)", response.getTitulo());
+        assertEquals(String.format("PRJ-%d-0006", year), response.getProtocolo());
+        assertEquals(ProjectStatus.RASCUNHO.name(), response.getStatus());
+        assertEquals(1, response.getEtapaAtual());
+        assertEquals("380_220V", response.getTensaoFornecimento());
+        assertTrue(response.isPossuiComercial());
+        assertTrue(response.isPossuiVe());
+        assertFalse(response.isPossuiIncendio());
+        assertEquals("Recife", response.getMunicipio());
+
+        ArgumentCaptor<Project> captor = ArgumentCaptor.forClass(Project.class);
+        verify(projectRepository).save(captor.capture());
+        Project saved = captor.getValue();
+        assertEquals(user, saved.getUser());
+        assertEquals("Projeto Matriz (cópia)", saved.getTitulo());
+        assertEquals(ProjectStatus.RASCUNHO, saved.getStatus());
+        assertEquals(1, saved.getEtapaAtual());
+    }
+
+    @Test
+    @DisplayName("Deve lançar ForbiddenException ao tentar duplicar projeto pertencente a outro usuário")
+    void shouldThrowForbiddenWhenDuplicatingOtherUsersProject() {
+        User outroUser = new User("Outro Engenheiro", "outro@teste.com", "senha123");
+        outroUser.setId(99L);
+
+        Project original = new Project();
+        original.setId(50L);
+        original.setUser(outroUser);
+
+        when(projectRepository.findById(50L)).thenReturn(Optional.of(original));
+
+        ForbiddenException ex = assertThrows(ForbiddenException.class, () ->
+                projectService.duplicateProject(50L, 10L)
+        );
+
+        assertTrue(ex.getMessage().contains("Acesso negado"));
+        verify(projectRepository, never()).save(any(Project.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar ResourceNotFoundException ao tentar duplicar projeto inexistente")
+    void shouldThrowNotFoundWhenDuplicatingNonExistentProject() {
+        when(projectRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () ->
+                projectService.duplicateProject(999L, 10L)
+        );
+        verify(projectRepository, never()).save(any(Project.class));
     }
 
     @Test

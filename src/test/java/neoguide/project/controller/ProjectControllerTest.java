@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -155,7 +156,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/projects autenticado deve retornar 200 OK apenas com os projetos do usuário logado")
+    @DisplayName("GET /api/v1/projects autenticado deve retornar 200 OK com paginação e apenas projetos do usuário logado")
     void shouldListOnlyAuthenticatedUserProjects() throws Exception {
         Project projDono = new Project();
         projDono.setProtocolo("PRJ-2026-0001");
@@ -178,9 +179,178 @@ class ProjectControllerTest {
         mockMvc.perform(get("/api/v1/projects")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].protocolo", is("PRJ-2026-0001")))
-                .andExpect(jsonPath("$[0].titulo", is("Projeto do Dono")));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].protocolo", is("PRJ-2026-0001")))
+                .andExpect(jsonPath("$.content[0].titulo", is("Projeto do Dono")))
+                .andExpect(jsonPath("$.totalElements", is(1)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/projects com paginação e ordenação deve respeitar size=2 e sort=createdAt,desc")
+    void shouldListProjectsWithPaginationSizeAndSorting() throws Exception {
+        LocalDateTime baseTime = LocalDateTime.now();
+
+        Project p1 = new Project();
+        p1.setProtocolo("PRJ-2026-0001");
+        p1.setTitulo("Projeto Alfa");
+        p1.setUser(dono);
+        p1.setTensaoFornecimento("380_220V");
+        p1.setMunicipio("Recife");
+        p1.setCreatedAt(baseTime.minusHours(3));
+        projectRepository.save(p1);
+
+        Project p2 = new Project();
+        p2.setProtocolo("PRJ-2026-0002");
+        p2.setTitulo("Projeto Beta");
+        p2.setUser(dono);
+        p2.setTensaoFornecimento("380_220V");
+        p2.setMunicipio("Recife");
+        p2.setCreatedAt(baseTime.minusHours(2));
+        projectRepository.save(p2);
+
+        Project p3 = new Project();
+        p3.setProtocolo("PRJ-2026-0003");
+        p3.setTitulo("Projeto Gama");
+        p3.setUser(dono);
+        p3.setTensaoFornecimento("380_220V");
+        p3.setMunicipio("Recife");
+        p3.setCreatedAt(baseTime.minusHours(1));
+        projectRepository.save(p3);
+
+        mockMvc.perform(get("/api/v1/projects?page=0&size=2&sort=createdAt,desc")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[0].titulo", is("Projeto Gama")))
+                .andExpect(jsonPath("$.content[1].titulo", is("Projeto Beta")))
+                .andExpect(jsonPath("$.totalElements", is(3)))
+                .andExpect(jsonPath("$.totalPages", is(2)));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/projects com filtro de status deve retornar apenas projetos correspondentes")
+    void shouldFilterProjectsByStatus() throws Exception {
+        Project rascunho = new Project();
+        rascunho.setProtocolo("PRJ-2026-0001");
+        rascunho.setTitulo("Projeto Rascunho");
+        rascunho.setUser(dono);
+        rascunho.setStatus(ProjectStatus.RASCUNHO);
+        rascunho.setTensaoFornecimento("380_220V");
+        rascunho.setMunicipio("Recife");
+        projectRepository.save(rascunho);
+
+        Project aprovado = new Project();
+        aprovado.setProtocolo("PRJ-2026-0002");
+        aprovado.setTitulo("Projeto Aprovado");
+        aprovado.setUser(dono);
+        aprovado.setStatus(ProjectStatus.APROVADO);
+        aprovado.setTensaoFornecimento("380_220V");
+        aprovado.setMunicipio("Recife");
+        projectRepository.save(aprovado);
+
+        mockMvc.perform(get("/api/v1/projects?status=RASCUNHO")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].titulo", is("Projeto Rascunho")))
+                .andExpect(jsonPath("$.content[0].status", is("RASCUNHO")));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/projects com termo search deve buscar por título, protocolo ou município")
+    void shouldFilterProjectsBySearchTerm() throws Exception {
+        Project p1 = new Project();
+        p1.setProtocolo("PRJ-2026-0100");
+        p1.setTitulo("Edifício Solar Central");
+        p1.setUser(dono);
+        p1.setTensaoFornecimento("380_220V");
+        p1.setMunicipio("Recife");
+        projectRepository.save(p1);
+
+        Project p2 = new Project();
+        p2.setProtocolo("PRJ-2026-0200");
+        p2.setTitulo("Galpão Logístico");
+        p2.setUser(dono);
+        p2.setTensaoFornecimento("380_220V");
+        p2.setMunicipio("Caruaru");
+        projectRepository.save(p2);
+
+        // Busca por título parcial minúsculo
+        mockMvc.perform(get("/api/v1/projects?search=solar")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].titulo", is("Edifício Solar Central")));
+
+        // Busca por município
+        mockMvc.perform(get("/api/v1/projects?search=Caruaru")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].titulo", is("Galpão Logístico")));
+
+        // Busca por protocolo
+        mockMvc.perform(get("/api/v1/projects?search=0100")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].protocolo", is("PRJ-2026-0100")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/projects/{id}/duplicate autenticado deve retornar 201 Created com projeto clonado")
+    void shouldDuplicateProjectSuccessfully() throws Exception {
+        Project original = new Project();
+        original.setProtocolo("PRJ-2026-0001");
+        original.setTitulo("Condomínio Jardins");
+        original.setDescricao("Memorial descritivo elétrico");
+        original.setUser(dono);
+        original.setStatus(ProjectStatus.APROVADO);
+        original.setEtapaAtual(3);
+        original.setTensaoFornecimento("380_220V");
+        original.setPossuiComercial(true);
+        original.setPossuiVe(true);
+        original.setPossuiIncendio(false);
+        original.setMunicipio("Recife");
+        original.setCep("50000-000");
+        original.setEndereco("Av. Boa Viagem, 1000");
+        original.setCrea("CREA-PE-1234");
+        original.setCreatedAt(LocalDateTime.now().minusDays(2));
+        Project savedOriginal = projectRepository.save(original);
+
+        mockMvc.perform(post("/api/v1/projects/" + savedOriginal.getId() + "/duplicate")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.id", not(is(savedOriginal.getId().intValue()))))
+                .andExpect(jsonPath("$.titulo", is("Condomínio Jardins (cópia)")))
+                .andExpect(jsonPath("$.protocolo", matchesPattern("^PRJ-\\d{4}-\\d{4}$")))
+                .andExpect(jsonPath("$.status", is("RASCUNHO")))
+                .andExpect(jsonPath("$.etapaAtual", is(1)))
+                .andExpect(jsonPath("$.tensaoFornecimento", is("380_220V")))
+                .andExpect(jsonPath("$.possuiComercial", is(true)))
+                .andExpect(jsonPath("$.possuiVe", is(true)))
+                .andExpect(jsonPath("$.municipio", is("Recife")));
+
+        assertEquals(2, projectRepository.findAllByUserIdOrderByCreatedAtDesc(dono.getId()).size());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/projects/{id}/duplicate por outro usuário deve retornar 403 Forbidden")
+    void shouldReturn403WhenOtherUserTriesToDuplicateProject() throws Exception {
+        Project projDono = new Project();
+        projDono.setProtocolo("PRJ-2026-0010");
+        projDono.setTitulo("Projeto Exclusivo do Dono");
+        projDono.setUser(dono);
+        projDono.setTensaoFornecimento("380_220V");
+        projDono.setMunicipio("Recife");
+        Project saved = projectRepository.save(projDono);
+
+        mockMvc.perform(post("/api/v1/projects/" + saved.getId() + "/duplicate")
+                        .header("Authorization", "Bearer " + tokenOutro))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.message", containsString("Acesso negado")));
     }
 
     @Test
@@ -241,7 +411,7 @@ class ProjectControllerTest {
         mockMvc.perform(get("/projects")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
+                .andExpect(jsonPath("$.content", hasSize(1)));
 
         mockMvc.perform(get("/projects/" + saved.getId())
                         .header("Authorization", "Bearer " + tokenDono))

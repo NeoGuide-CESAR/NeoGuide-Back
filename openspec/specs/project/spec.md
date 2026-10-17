@@ -1,7 +1,7 @@
 # Especificação: Gestão de Projetos Elétricos e Protocolo
 
 ## Finalidade
-Permitir o gerenciamento do ciclo de vida de projetos elétricos no NeoGuide, armazenando os metadados fundamentais do empreendimento (DNA: localização, tensão de fornecimento, flags de etapas ativas do wizard) com geração automática do protocolo anual oficial (`PRJ-AAAA-XXXX`) e isolamento estrito de acesso entre projetistas.
+Permitir o gerenciamento do ciclo de vida de projetos elétricos no NeoGuide, armazenando os metadados fundamentais do empreendimento (DNA: localização, tensão de fornecimento, flags de etapas ativas do wizard) com geração automática do protocolo anual oficial (`PRJ-AAAA-XXXX`), navegação paginada com filtros combinados de busca, duplicação rápida com 1-clique e isolamento estrito de acesso entre projetistas.
 
 ## Modelo de Dados
 
@@ -34,7 +34,7 @@ Tabela: `projects`
 
 ### 1. Geração Sequencial de Protocolo Anual
 - Padrão: `PRJ-AAAA-XXXX`, onde `AAAA` é o ano civil corrente e `XXXX` é um sequencial de 4 dígitos iniciado em `0001`.
-- Ao criar um novo projeto, o sistema busca o maior protocolo existente para o prefixo `PRJ-AAAA-`.
+- Ao criar um novo projeto ou duplicar um existente, o sistema busca o maior protocolo existente para o prefixo `PRJ-AAAA-`.
 - Se encontrado, incrementa 1 no valor numérico final (`PRJ-2026-0001` -> `PRJ-2026-0002`).
 - Caso não haja registros no ano corrente, inicia em `PRJ-AAAA-0001`.
 
@@ -48,6 +48,14 @@ Tabela: `projects`
 - A criação associa automaticamente o projeto ao usuário autenticado identificado via JWT.
 - A listagem retorna estritamente os projetos vinculados ao `user_id` do usuário autenticado.
 - A consulta detalhada por ID verifica se o projeto pertence ao usuário solicitante. Caso pertença a outro usuário, o sistema bloqueia o acesso com `ForbiddenException` resultando em HTTP 403 Forbidden.
+- A duplicação é estritamente permitida apenas ao projetista proprietário; requisições de outros usuários resultam em HTTP 403 Forbidden.
+
+### 4. Duplicação de Projetos (Clonagem)
+- Cria um novo registro preservando os dados elétricos e cadastrais (tensão, flags, responsável, município, endereço, etc.).
+- Atribui novo título com o sufixo `" (cópia)"`.
+- Reseta o status para `ProjectStatus.RASCUNHO` e a etapa para `1`.
+- Gera um novo protocolo anual sequencial oficial (`PRJ-AAAA-XXXX`).
+- Atualiza as datas `createdAt` e `dataSubmissao` para o instante atual.
 
 ## Endpoints REST
 
@@ -56,7 +64,14 @@ Tabela: `projects`
   - Retorno: HTTP 201 Created com DTO `CreateProjectResponse`.
 - `GET /api/v1/projects` (e alias `/projects`):
   - Autenticação: Bearer Token.
-  - Retorno: HTTP 200 OK com lista `List<ProjectResponse>` ordenada por `createdAt DESC`.
+  - Parâmetros opcionais:
+    - `status`: filtro pelo enum `ProjectStatus`.
+    - `search`: busca por termo em título, protocolo ou município.
+    - `page`, `size`, `sort`: paginação Spring Data (default 10 itens por página, `createdAt DESC`).
+  - Retorno: HTTP 200 OK com `Page<ProjectResponse>`.
+- `POST /api/v1/projects/{id}/duplicate` (e alias `/projects/{id}/duplicate`):
+  - Autenticação: Bearer Token.
+  - Retorno: HTTP 201 Created com DTO `ProjectResponse` do projeto clonado.
 - `GET /api/v1/projects/{id}` (e alias `/projects/{id}`):
   - Autenticação: Bearer Token.
   - Retorno: HTTP 200 OK com DTO `ProjectResponse`.

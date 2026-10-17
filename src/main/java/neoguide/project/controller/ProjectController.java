@@ -4,9 +4,14 @@ import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
 import neoguide.project.exception.UnauthorizedException;
+import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.User;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.service.ProjectService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -16,9 +21,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequestMapping({"/api/v1/projects", "/projects"})
@@ -41,9 +45,20 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProjectResponse>> list(Authentication authentication) {
+    public ResponseEntity<Page<ProjectResponse>> list(
+            @RequestParam(required = false) ProjectStatus status,
+            @RequestParam(required = false) String search,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
-        return ResponseEntity.ok(projectService.listByUser(userId));
+        return ResponseEntity.ok(projectService.listByUserWithFilters(userId, status, search, pageable));
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<ProjectResponse> duplicate(@PathVariable("id") Long id,
+                                                     Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.duplicateProject(id, userId));
     }
 
     @GetMapping("/{id}")
