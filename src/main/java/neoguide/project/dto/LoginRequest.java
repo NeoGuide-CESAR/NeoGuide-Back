@@ -2,23 +2,45 @@ package neoguide.project.dto;
 
 public class LoginRequest {
 
+    private String login;
     private String email;
     private String password;
 
     public LoginRequest() {
     }
 
-    public LoginRequest(String email, String password) {
-        this.email = email;
+    public LoginRequest(String login, String password) {
+        this.login = login;
+        this.email = login;
         this.password = password;
     }
 
-    public String getEmail() {
+    public String getLogin() {
+        if (login != null && !login.isBlank()) {
+            return login;
+        }
         return email;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+        if (this.email == null) {
+            this.email = login;
+        }
+    }
+
+    public String getEmail() {
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        return login;
     }
 
     public void setEmail(String email) {
         this.email = email;
+        if (this.login == null) {
+            this.login = email;
+        }
     }
 
     public String getPassword() {

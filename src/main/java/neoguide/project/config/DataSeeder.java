@@ -30,18 +30,22 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final PasswordEncoder passwordEncoder;
+    private final neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder;
 
     public DataSeeder(UserRepository userRepository, ProjectRepository projectRepository,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                      neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.passwordEncoder = passwordEncoder;
+        this.normativeDataSeeder = normativeDataSeeder;
     }
 
     @Override
     public void run(String... args) {
         seedUsers();
         seedProjects();
+        normativeDataSeeder.seedAll();
     }
 
     private void seedUsers() {
@@ -50,9 +54,9 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         List<User> users = List.of(
-                new User("Administrador", "admin@neoguide.com", passwordEncoder.encode("admin123")),
-                new User("Maria Silva", "maria@neoguide.com", passwordEncoder.encode("maria123")),
-                new User("João Souza", "joao@neoguide.com", passwordEncoder.encode("joao1234"))
+                new User("Administrador", "admin@neoguide.com", passwordEncoder.encode("admin123"), "00000000000", neoguide.project.model.UserRole.ROLE_ANALISTA),
+                new User("Maria Silva", "maria@neoguide.com", passwordEncoder.encode("maria123"), "11111111111", neoguide.project.model.UserRole.ROLE_PROJETISTA),
+                new User("João Souza", "joao@neoguide.com", passwordEncoder.encode("joao1234"), "22222222222", neoguide.project.model.UserRole.ROLE_PROJETISTA)
         );
 
         userRepository.saveAll(users);
@@ -61,6 +65,11 @@ public class DataSeeder implements CommandLineRunner {
     private void seedProjects() {
         if (projectRepository.count() > 0) {
             return;
+        }
+
+        User maria = userRepository.findByEmail("maria@neoguide.com").orElse(null);
+        if (maria == null) {
+            maria = userRepository.findAll().stream().findFirst().orElse(null);
         }
 
         LocalDateTime agora = LocalDateTime.now();
@@ -139,6 +148,13 @@ public class DataSeeder implements CommandLineRunner {
                         agora.minusDays(1)
                 )
         );
+
+        for (Project project : projects) {
+            project.setUser(maria);
+            project.setTensaoFornecimento("380_220V");
+            project.setCreatedAt(project.getDataSubmissao() != null ? project.getDataSubmissao() : agora);
+            project.setEtapaAtual(1);
+        }
 
         projectRepository.saveAll(projects);
     }
