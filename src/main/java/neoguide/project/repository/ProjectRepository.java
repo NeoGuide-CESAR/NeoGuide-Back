@@ -19,9 +19,10 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     @Query("SELECT p FROM Project p WHERE p.user.id = :userId " +
            "AND (:status IS NULL OR p.status = :status) " +
-           "AND (:termo IS NULL OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', :termo, '%')) " +
-           "     OR LOWER(p.protocolo) LIKE LOWER(CONCAT('%', :termo, '%')) " +
-           "     OR LOWER(p.municipio) LIKE LOWER(CONCAT('%', :termo, '%')))")
+           "AND (CAST(:termo AS string) IS NULL " +
+           "     OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', CAST(:termo AS string), '%')) " +
+           "     OR LOWER(p.protocolo) LIKE LOWER(CONCAT('%', CAST(:termo AS string), '%')) " +
+           "     OR LOWER(p.municipio) LIKE LOWER(CONCAT('%', CAST(:termo AS string), '%')))")
     Page<Project> findByUserWithFilters(@Param("userId") Long userId,
                                         @Param("status") ProjectStatus status,
                                         @Param("termo") String termo,
