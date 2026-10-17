@@ -56,19 +56,17 @@ public class CreateProjectRequest {
     }
 
     public String getTipo() {
-        return tipo != null ? tipo : tipoEdificacao;
+        return tipo;
     }
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
     }
 
-    public String getTipoEdificacao() {
-        return tipoEdificacao != null ? tipoEdificacao : tipo;
-    }
-
     public void setTipoEdificacao(String tipoEdificacao) {
-        this.tipoEdificacao = tipoEdificacao;
+        if (this.tipo == null) {
+            this.tipo = tipoEdificacao;
+        }
     }
 
     public String getTensaoFornecimento() {
@@ -83,10 +81,6 @@ public class CreateProjectRequest {
         return Boolean.TRUE.equals(possuiComercial);
     }
 
-    public Boolean getPossuiComercial() {
-        return possuiComercial;
-    }
-
     public void setPossuiComercial(Boolean possuiComercial) {
         this.possuiComercial = possuiComercial != null ? possuiComercial : false;
     }
@@ -95,20 +89,12 @@ public class CreateProjectRequest {
         return Boolean.TRUE.equals(possuiVe);
     }
 
-    public Boolean getPossuiVe() {
-        return possuiVe;
-    }
-
     public void setPossuiVe(Boolean possuiVe) {
         this.possuiVe = possuiVe != null ? possuiVe : false;
     }
 
     public boolean isPossuiIncendio() {
         return Boolean.TRUE.equals(possuiIncendio);
-    }
-
-    public Boolean getPossuiIncendio() {
-        return possuiIncendio;
     }
 
     public void setPossuiIncendio(Boolean possuiIncendio) {
