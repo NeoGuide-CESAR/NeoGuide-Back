@@ -20,25 +20,6 @@ public class CreateProjectRequest {
     public CreateProjectRequest() {
     }
 
-    public CreateProjectRequest(String titulo, String descricao, String tipo, String tensaoFornecimento,
-                                Boolean possuiComercial, Boolean possuiVe, Boolean possuiIncendio,
-                                String responsavel, String crea, String municipio,
-                                String cep, String endereco, String bairro) {
-        this.titulo = titulo;
-        this.descricao = descricao;
-        this.tipo = tipo;
-        this.tensaoFornecimento = tensaoFornecimento;
-        this.possuiComercial = possuiComercial != null ? possuiComercial : false;
-        this.possuiVe = possuiVe != null ? possuiVe : false;
-        this.possuiIncendio = possuiIncendio != null ? possuiIncendio : false;
-        this.responsavel = responsavel;
-        this.crea = crea;
-        this.municipio = municipio;
-        this.cep = cep;
-        this.endereco = endereco;
-        this.bairro = bairro;
-    }
-
     public String getTitulo() {
         return titulo;
     }
