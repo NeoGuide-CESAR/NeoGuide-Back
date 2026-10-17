@@ -1,0 +1,1452 @@
+{
+  "info": {
+    "_postman_id": "7f8b9c0d-1e2f-4a3b-9c8d-7e6f5a4b3c2d",
+    "name": "NeoGuide API",
+    "description": "# NeoGuide API - Coleção Postman v2.1\n\nColeção completa e robusta para testes e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop`.\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)**:\n   - Registro de Usuários (Projetista com `ROLE_PROJETISTA` e Analista com `ROLE_ANALISTA`).\n   - Suporte a CPF/CNPJ com ou sem máscara de pontuação.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste para captura automática do token JWT na variável de coleção `{{jwt_token}}`.\n\n2. **Gestão de Projetos Elétricos (`/api/v1/projects`)**:\n   - Autorização `Bearer {{jwt_token}}`.\n   - Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - Numeração de protocolo sequencial anual automático (`PRJ-AAAA-XXXX`).\n   - Script de teste para captura automática do `projectId` na variável de coleção `{{projectId}}`.\n   - Consulta paginada (`Pageable` Spring Data: `page`, `size`, `sort`).\n   - Filtro por status (`status=RASCUNHO`, etc.).\n   - Busca textual (`search=...`) em múltiplos campos.\n   - Detalhes de projeto por ID com validação de tenancy (403 Forbidden).\n   - Duplicação atômica de projetos com novo protocolo e status `RASCUNHO`.\n\n3. **Utilitários (`/test`)**:\n   - Endpoint de verificação rápida e sanidade da API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "URL base do servidor NeoGuide Backend"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "Token Bearer JWT extraído automaticamente no login"
+    },
+    {
+      "key": "projectId",
+      "value": "1",
+      "type": "string",
+      "description": "ID do projeto utilizado nos testes de consulta e duplicação"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticação",
+      "description": "Endpoints públicos de registro e login de usuários no sistema NeoGuide.",
+      "item": [
+        {
+          "name": "Cadastro de Projetista",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.silva@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cadastra um novo usuário projetista (`ROLE_PROJETISTA`). O CPF/CNPJ é higienizado pelo servidor para manter apenas dígitos numéricos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Usuário Projetista registrado com sucesso\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.name).to.eql(\"Eng. Carlos Silva\");",
+                  "    pm.expect(jsonData.email).to.eql(\"carlos.silva@engenharia.com\");",
+                  "    pm.expect(jsonData.cpfCnpj).to.eql(\"12345678901\");",
+                  "    pm.expect(jsonData.role).to.eql(\"ROLE_PROJETISTA\");",
+                  "    pm.expect(jsonData.createdAt).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created - Projetista",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.silva@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.silva@engenharia.com\",\n  \"cpfCnpj\": \"12345678901\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"createdAt\": \"2026-10-17T09:00:00\"\n}"
+            },
+            {
+              "name": "409 Conflict - CPF/CNPJ Duplicado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.outro@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:02:15\",\n  \"status\": 409,\n  \"message\": \"CPF/CNPJ já cadastrado\",\n  \"errors\": {}\n}"
+            },
+            {
+              "name": "400 Bad Request - Erro de Validação",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Carlos Silva\",\n  \"email\": \"carlos.invalido@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"fraca\",\n  \"confirmPassword\": \"diferente\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:03:00\",\n  \"status\": 400,\n  \"message\": \"Erro de validação nos dados fornecidos\",\n  \"errors\": {\n    \"password\": \"Deve ter no mínimo 8 caracteres\",\n    \"confirmPassword\": \"As senhas não conferem\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cadastro de Analista",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mariana Souza\",\n  \"email\": \"mariana.analista@distribuidora.com\",\n  \"cpfCnpj\": \"987.654.321-09\",\n  \"role\": \"ROLE_ANALISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cadastra um analista da concessionária (`ROLE_ANALISTA`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Usuário Analista registrado com sucesso\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.role).to.eql(\"ROLE_ANALISTA\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created - Analista",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Mariana Souza\",\n  \"email\": \"mariana.analista@distribuidora.com\",\n  \"cpfCnpj\": \"987.654.321-09\",\n  \"role\": \"ROLE_ANALISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 2,\n  \"name\": \"Mariana Souza\",\n  \"email\": \"mariana.analista@distribuidora.com\",\n  \"cpfCnpj\": \"98765432109\",\n  \"role\": \"ROLE_ANALISTA\",\n  \"createdAt\": \"2026-10-17T09:05:00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login com E-mail e Senha",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"carlos.silva@engenharia.com\",\n  \"password\": \"SenhaForte123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica o usuário pelo endereço de e-mail e senha. Armazena automaticamente o token retornado na variável `{{jwt_token}}` da coleção."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"jwt_token\", pm.response.json().token);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Token JWT capturado com sucesso\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(jsonData.tipo).to.eql(\"Bearer\");",
+                  "    pm.expect(jsonData.usuario).to.be.an(\"object\");",
+                  "    pm.expect(jsonData.usuario.email).to.eql(\"carlos.silva@engenharia.com\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Login com E-mail",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"carlos.silva@engenharia.com\",\n  \"password\": \"SenhaForte123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXJsb3Muc2lsdmFAZW5nZW5oYXJpYS5jb20iLCJyb2xlIjoiUk9MRV9QUk9KRVRJU1RBIiwiZXhwIjoxNzk0OTYwMDAwfQ.XYZ1234567890abcdef\",\n  \"tipo\": \"Bearer\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"roles\": [\n    \"ROLE_PROJETISTA\"\n  ],\n  \"usuario\": {\n    \"id\": 1,\n    \"name\": \"Eng. Carlos Silva\",\n    \"email\": \"carlos.silva@engenharia.com\",\n    \"cpfCnpj\": \"12345678901\",\n    \"role\": \"ROLE_PROJETISTA\",\n    \"createdAt\": \"2026-10-17T09:00:00\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized - Credenciais Inválidas",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"carlos.silva@engenharia.com\",\n  \"password\": \"SenhaIncorreta\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:10:00\",\n  \"status\": 401,\n  \"message\": \"E-mail ou senha inválidos\",\n  \"errors\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login com CPF (com formatação)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"123.456.789-01\",\n  \"password\": \"SenhaForte123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica o usuário fornecendo CPF formatado com pontuação (`123.456.789-01`). O sistema sanitiza os caracteres para a busca."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"jwt_token\", pm.response.json().token);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Autenticação via CPF formatado bem-sucedida\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Login com CPF com máscara",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"123.456.789-01\",\n  \"password\": \"SenhaForte123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXJsb3Muc2lsdmFAZW5nZW5oYXJpYS5jb20iLCJyb2xlIjoiUk9MRV9QUk9KRVRJU1RBIiwiZXhwIjoxNzk0OTYwMDAwfQ.XYZ1234567890abcdef\",\n  \"tipo\": \"Bearer\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"roles\": [\n    \"ROLE_PROJETISTA\"\n  ],\n  \"usuario\": {\n    \"id\": 1,\n    \"name\": \"Eng. Carlos Silva\",\n    \"email\": \"carlos.silva@engenharia.com\",\n    \"cpfCnpj\": \"12345678901\",\n    \"role\": \"ROLE_PROJETISTA\",\n    \"createdAt\": \"2026-10-17T09:00:00\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login com CPF/CNPJ (sem formatação)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"12345678901\",\n  \"password\": \"SenhaForte123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica o usuário fornecendo CPF/CNPJ sem máscara (apenas dígitos numéricos)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"jwt_token\", pm.response.json().token);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Autenticação via CPF desformatado bem-sucedida\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Login com CPF sem máscara",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"login\": \"12345678901\",\n  \"password\": \"SenhaForte123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXJsb3Muc2lsdmFAZW5nZW5oYXJpYS5jb20iLCJyb2xlIjoiUk9MRV9QUk9KRVRJU1RBIiwiZXhwIjoxNzk0OTYwMDAwfQ.XYZ1234567890abcdef\",\n  \"tipo\": \"Bearer\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"roles\": [\n    \"ROLE_PROJETISTA\"\n  ],\n  \"usuario\": {\n    \"id\": 1,\n    \"name\": \"Eng. Carlos Silva\",\n    \"email\": \"carlos.silva@engenharia.com\",\n    \"cpfCnpj\": \"12345678901\",\n    \"role\": \"ROLE_PROJETISTA\",\n    \"createdAt\": \"2026-10-17T09:00:00\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Gestão de Projetos Elétricos",
+      "description": "Endpoints protegidos para gerenciamento de projetos elétricos com DNA normativo completo. Requerem cabeçalho `Authorization: Bearer {{jwt_token}}`.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{jwt_token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Criar Projeto (DNA Completo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"crea\": \"123456-D/PE\",\n  \"municipio\": \"Recife\",\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ]
+            },
+            "description": "Cria um novo projeto elétrico com o DNA normativo completo. Gera número sequencial de protocolo anual (`PRJ-AAAA-XXXX`) e salva automaticamente o `id` na variável `{{projectId}}`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"projectId\", pm.response.json().id);",
+                  "}",
+                  "",
+                  "pm.test(\"Status code é 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Projeto criado com sucesso e protocolo sequencial gerado\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.protocolo).to.match(/^PRJ-\\d{4}-\\d{4}$/);",
+                  "    pm.expect(jsonData.titulo).to.eql(\"Edifício Solar dos Pinheiros\");",
+                  "    pm.expect(jsonData.status).to.eql(\"RASCUNHO\");",
+                  "    pm.expect(jsonData.etapaAtual).to.eql(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created - Projeto Criado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"crea\": \"123456-D/PE\",\n  \"municipio\": \"Recife\",\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"protocolo\": \"PRJ-2026-0001\",\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"status\": \"RASCUNHO\",\n  \"etapaAtual\": 1,\n  \"createdAt\": \"2026-10-17T09:15:00\"\n}"
+            },
+            {
+              "name": "400 Bad Request - Tensão de Fornecimento Inválida",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"tensaoFornecimento\": \"110V_INVALIDA\",\n  \"municipio\": \"Recife\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:15:30\",\n  \"status\": 400,\n  \"message\": \"Erro de validação nos dados fornecidos\",\n  \"errors\": {\n    \"tensaoFornecimento\": \"Tensão de fornecimento inválida\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Listar Projetos (Paginado Padrão)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects?page=0&size=10&sort=createdAt,desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Índice da página (0-indexed)"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Tamanho da página"
+                },
+                {
+                  "key": "sort",
+                  "value": "createdAt,desc",
+                  "description": "Ordenação por data de criação decrescente"
+                }
+              ]
+            },
+            "description": "Retorna listagem paginada dos projetos pertencentes ao usuário autenticado com metadados do Spring Data Page."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna estrutura Page do Spring Data com projetos\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.content).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.totalElements).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.totalPages).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.size).to.eql(10);",
+                  "    pm.expect(jsonData.number).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Listagem Paginada Padrão",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects?page=0&size=10&sort=createdAt,desc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    },
+                    {
+                      "key": "sort",
+                      "value": "createdAt,desc"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": 1,\n      \"protocolo\": \"PRJ-2026-0001\",\n      \"titulo\": \"Edifício Solar dos Pinheiros\",\n      \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n      \"tipo\": \"LIGACAO_NOVA\",\n      \"tipoDescricao\": \"Ligação nova\",\n      \"status\": \"RASCUNHO\",\n      \"statusDescricao\": \"Rascunho\",\n      \"normaTecnica\": \"NBR 5410\",\n      \"responsavel\": \"Eng. Carlos Silva\",\n      \"municipio\": \"Recife\",\n      \"dataSubmissao\": \"2026-10-17T09:15:00\",\n      \"tensaoFornecimento\": \"380_220V\",\n      \"possuiComercial\": true,\n      \"possuiVe\": true,\n      \"possuiIncendio\": true,\n      \"etapaAtual\": 1,\n      \"cep\": \"50030-000\",\n      \"endereco\": \"Rua do Bom Jesus, 180\",\n      \"bairro\": \"Bairro do Recife\",\n      \"crea\": \"123456-D/PE\",\n      \"createdAt\": \"2026-10-17T09:15:00\",\n      \"updatedAt\": null\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 10,\n    \"sort\": {\n      \"empty\": false,\n      \"sorted\": true,\n      \"unsorted\": false\n    },\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalElements\": 1,\n  \"totalPages\": 1,\n  \"last\": true,\n  \"size\": 10,\n  \"number\": 0,\n  \"sort\": {\n    \"empty\": false,\n    \"sorted\": true,\n    \"unsorted\": false\n  },\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Listar Projetos por Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects?status=RASCUNHO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "RASCUNHO",
+                  "description": "Filtro pelo enum ProjectStatus: RASCUNHO, EM_ANALISE, AGUARDANDO_CORRECAO, APROVADO, REPROVADO"
+                }
+              ]
+            },
+            "description": "Filtra os projetos do usuário pelo status informado (`RASCUNHO`, `EM_ANALISE`, etc.)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Todos os projetos possuem o status filtrado\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.content).to.be.an(\"array\");",
+                  "    jsonData.content.forEach(function (proj) {",
+                  "        pm.expect(proj.status).to.eql(\"RASCUNHO\");",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Filtro por Status RASCUNHO",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects?status=RASCUNHO",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "RASCUNHO"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": 1,\n      \"protocolo\": \"PRJ-2026-0001\",\n      \"titulo\": \"Edifício Solar dos Pinheiros\",\n      \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n      \"tipo\": \"LIGACAO_NOVA\",\n      \"tipoDescricao\": \"Ligação nova\",\n      \"status\": \"RASCUNHO\",\n      \"statusDescricao\": \"Rascunho\",\n      \"normaTecnica\": \"NBR 5410\",\n      \"responsavel\": \"Eng. Carlos Silva\",\n      \"municipio\": \"Recife\",\n      \"dataSubmissao\": \"2026-10-17T09:15:00\",\n      \"tensaoFornecimento\": \"380_220V\",\n      \"possuiComercial\": true,\n      \"possuiVe\": true,\n      \"possuiIncendio\": true,\n      \"etapaAtual\": 1,\n      \"cep\": \"50030-000\",\n      \"endereco\": \"Rua do Bom Jesus, 180\",\n      \"bairro\": \"Bairro do Recife\",\n      \"crea\": \"123456-D/PE\",\n      \"createdAt\": \"2026-10-17T09:15:00\",\n      \"updatedAt\": null\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 10,\n    \"sort\": {\n      \"empty\": false,\n      \"sorted\": true,\n      \"unsorted\": false\n    },\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalElements\": 1,\n  \"totalPages\": 1,\n  \"last\": true,\n  \"size\": 10,\n  \"number\": 0,\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Buscar Projetos por Texto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects?search=Edificio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Edificio",
+                  "description": "Termo de busca aplicado sobre título, protocolo ou município"
+                }
+              ]
+            },
+            "description": "Executa busca textual (case-insensitive) nos campos título, protocolo e município dos projetos do usuário autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna itens correspondentes à busca\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.content).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Busca Textual 'Edificio'",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects?search=Edificio",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "Edificio"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"content\": [\n    {\n      \"id\": 1,\n      \"protocolo\": \"PRJ-2026-0001\",\n      \"titulo\": \"Edifício Solar dos Pinheiros\",\n      \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n      \"tipo\": \"LIGACAO_NOVA\",\n      \"tipoDescricao\": \"Ligação nova\",\n      \"status\": \"RASCUNHO\",\n      \"statusDescricao\": \"Rascunho\",\n      \"normaTecnica\": \"NBR 5410\",\n      \"responsavel\": \"Eng. Carlos Silva\",\n      \"municipio\": \"Recife\",\n      \"dataSubmissao\": \"2026-10-17T09:15:00\",\n      \"tensaoFornecimento\": \"380_220V\",\n      \"possuiComercial\": true,\n      \"possuiVe\": true,\n      \"possuiIncendio\": true,\n      \"etapaAtual\": 1,\n      \"cep\": \"50030-000\",\n      \"endereco\": \"Rua do Bom Jesus, 180\",\n      \"bairro\": \"Bairro do Recife\",\n      \"crea\": \"123456-D/PE\",\n      \"createdAt\": \"2026-10-17T09:15:00\",\n      \"updatedAt\": null\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 10,\n    \"sort\": {\n      \"empty\": false,\n      \"sorted\": true,\n      \"unsorted\": false\n    },\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalElements\": 1,\n  \"totalPages\": 1,\n  \"last\": true,\n  \"size\": 10,\n  \"number\": 0,\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Obter Projeto por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Consulta o detalhamento completo do DNA do projeto informado por `{{projectId}}`. Garante isolamento de tenancy (403 Forbidden se o projeto pertencer a outro usuário)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna DNA normativo completo do projeto\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.protocolo).to.match(/^PRJ-\\d{4}-\\d{4}$/);",
+                  "    pm.expect(jsonData.tensaoFornecimento).to.be.oneOf([\"380_220V\", \"220_127V\"]);",
+                  "    pm.expect(jsonData.normaTecnica).to.eql(\"NBR 5410\");",
+                  "    pm.expect(jsonData.municipio).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Projeto Encontrado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 1,\n  \"protocolo\": \"PRJ-2026-0001\",\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tipoDescricao\": \"Ligação nova\",\n  \"status\": \"RASCUNHO\",\n  \"statusDescricao\": \"Rascunho\",\n  \"normaTecnica\": \"NBR 5410\",\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"municipio\": \"Recife\",\n  \"dataSubmissao\": \"2026-10-17T09:15:00\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"etapaAtual\": 1,\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\",\n  \"crea\": \"123456-D/PE\",\n  \"createdAt\": \"2026-10-17T09:15:00\",\n  \"updatedAt\": null\n}"
+            },
+            {
+              "name": "403 Forbidden - Projeto Pertence a Outro Usuário",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:20:00\",\n  \"status\": 403,\n  \"message\": \"Acesso negado: o projeto pertence a outro projetista\",\n  \"errors\": {}\n}"
+            },
+            {
+              "name": "404 Not Found - Projeto Não Encontrado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/999",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "999"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:20:00\",\n  \"status\": 404,\n  \"message\": \"Projeto não encontrado com id 999\",\n  \"errors\": {}\n}"
+            }
+          ]
+        },
+        {
+          "name": "Duplicar Projeto",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/duplicate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "duplicate"
+              ]
+            },
+            "description": "Realiza a duplicação atômica do projeto indicado por `{{projectId}}`. Gera um novo protocolo anual (`PRJ-AAAA-XXXX`), redefine o status para `RASCUNHO`, etapa 1 e anexa o sufixo ' (cópia)' ao título."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Projeto clonado com novo protocolo e status RASCUNHO\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.titulo).to.include(\"(cópia)\");",
+                  "    pm.expect(jsonData.status).to.eql(\"RASCUNHO\");",
+                  "    pm.expect(jsonData.protocolo).to.match(/^PRJ-\\d{4}-\\d{4}$/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 Created - Projeto Duplicado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/duplicate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}",
+                    "duplicate"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": 2,\n  \"protocolo\": \"PRJ-2026-0002\",\n  \"titulo\": \"Edifício Solar dos Pinheiros (cópia)\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tipoDescricao\": \"Ligação nova\",\n  \"status\": \"RASCUNHO\",\n  \"statusDescricao\": \"Rascunho\",\n  \"normaTecnica\": \"NBR 5410\",\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"municipio\": \"Recife\",\n  \"dataSubmissao\": \"2026-10-17T09:25:00\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"etapaAtual\": 1,\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\",\n  \"crea\": \"123456-D/PE\",\n  \"createdAt\": \"2026-10-17T09:25:00\",\n  \"updatedAt\": null\n}"
+            },
+            {
+              "name": "403 Forbidden - Projeto Pertence a Outro Projetista",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/duplicate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}",
+                    "duplicate"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-17T09:25:00\",\n  \"status\": 403,\n  \"message\": \"Acesso negado: o projeto pertence a outro projetista\",\n  \"errors\": {}\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Utilitários",
+      "description": "Endpoints utilitários de diagnóstico da API.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{jwt_token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Teste de Conectividade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "test"
+              ]
+            },
+            "description": "Retorna um número aleatório (0 a 99) para verificação rápida de disponibilidade e status 200 OK da API."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna número inteiro aleatório\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.a(\"number\");",
+                  "    pm.expect(jsonData).to.be.at.least(0).and.at.most(100);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Teste Aleatório",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/test",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "test"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "42"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
