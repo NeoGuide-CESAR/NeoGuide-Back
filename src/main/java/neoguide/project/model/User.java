@@ -35,6 +35,15 @@ public class User {
     @Column(nullable = false, length = 255)
     private String password;
 
+    @Column(length = 20)
+    private String telefone;
+
+    @Column(length = 150)
+    private String empresa;
+
+    @Column(length = 50)
+    private String crea;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -55,6 +64,19 @@ public class User {
         this.password = password;
         this.cpfCnpj = cpfCnpj;
         this.role = role != null ? role : UserRole.ROLE_PROJETISTA;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public User(String name, String email, String password, String cpfCnpj, UserRole role,
+                String telefone, String empresa, String crea) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.cpfCnpj = cpfCnpj;
+        this.role = role != null ? role : UserRole.ROLE_PROJETISTA;
+        this.telefone = telefone;
+        this.empresa = empresa;
+        this.crea = crea;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -104,6 +126,30 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public String getEmpresa() {
+        return empresa;
+    }
+
+    public void setEmpresa(String empresa) {
+        this.empresa = empresa;
+    }
+
+    public String getCrea() {
+        return crea;
+    }
+
+    public void setCrea(String crea) {
+        this.crea = crea;
     }
 
     public LocalDateTime getCreatedAt() {
