@@ -106,13 +106,13 @@ public class RegisterRequest {
 
     public void setConfirmacaoSenha(String confirmacaoSenha) {
         if (this.confirmPassword == null || this.confirmPassword.isBlank()) {
-            this.confirmPassword = confirmPassword;
+            this.confirmPassword = confirmacaoSenha;
         }
     }
 
     public void setConfirmacaoNovaSenha(String confirmacaoNovaSenha) {
         if (this.confirmPassword == null || this.confirmPassword.isBlank()) {
-            this.confirmPassword = confirmPassword;
+            this.confirmPassword = confirmacaoNovaSenha;
         }
     }
 }
