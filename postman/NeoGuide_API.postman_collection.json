@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "7f8b9c0d-1e2f-4a3b-9c8d-7e6f5a4b3c2d",
     "name": "NeoGuide API",
-    "description": "# NeoGuide API - Coleção Postman v2.1\n\nColeção completa e robusta para testes e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop`.\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)**:\n   - Registro de Usuários (Projetista com `ROLE_PROJETISTA` e Analista com `ROLE_ANALISTA`).\n   - Suporte a CPF/CNPJ com ou sem máscara de pontuação.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste para captura automática do token JWT na variável de coleção `{{jwt_token}}`.\n\n2. **Gestão de Projetos Elétricos (`/api/v1/projects`)**:\n   - Autorização `Bearer {{jwt_token}}`.\n   - Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - Numeração de protocolo sequencial anual automático (`PRJ-AAAA-XXXX`).\n   - Script de teste para captura automática do `projectId` na variável de coleção `{{projectId}}`.\n   - Consulta paginada (`Pageable` Spring Data: `page`, `size`, `sort`).\n   - Filtro por status (`status=RASCUNHO`, etc.).\n   - Busca textual (`search=...`) em múltiplos campos.\n   - Detalhes de projeto por ID com validação de tenancy (403 Forbidden).\n   - Duplicação atômica de projetos com novo protocolo e status `RASCUNHO`.\n\n3. **Utilitários (`/test`)**:\n   - Endpoint de verificação rápida e sanidade da API.",
+    "description": "# NeoGuide API - Coleção Postman v2.1\n\nColeção completa e robusta para testes e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop`.\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)**:\n   - Registro de Usuários (Projetista com `ROLE_PROJETISTA` e Analista com `ROLE_ANALISTA`).\n   - Suporte a CPF/CNPJ com ou sem máscara de pontuação.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste para captura automática do token JWT na variável de coleção `{{jwt_token}}`.\n\n2. **Gestão de Projetos Elétricos (`/api/v1/projects`)**:\n   - Autorização `Bearer {{jwt_token}}`.\n   - Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - Numeração de protocolo sequencial anual automático (`PRJ-AAAA-XXXX`).\n   - Script de teste para captura automática do `projectId` na variável de coleção `{{projectId}}`.\n   - Consulta paginada (`Pageable` Spring Data: `page`, `size`, `sort`).\n   - Filtro por status (`status=RASCUNHO`, etc.).\n   - Busca textual (`search=...`) em múltiplos campos.\n   - Detalhes de projeto por ID com validação de tenancy (403 Forbidden).\n   - Duplicação atômica de projetos com novo protocolo e status `RASCUNHO`.\n\n3. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - **Etapa 2 — Unidades Residenciais (`PUT /api/v1/projects/{id}/etapa-residencial`)**:\n     - Persistência atômica e idempotente da composição de tipologias de apartamentos.\n     - Contrato greenfield enxuto: envio de `areaUtilM2`, `quantidadeUnidades` e `isSmartStudio`.\n     - Execução determinística do motor normativo `ResidentialCalculationEngine` (DIS-NOR-053).\n     - Retorno consolidado enxuto com `sucesso`, `projectId` e a Demanda Residencial Final ($D_{rf}$ em kVA).\n     - Avanço automático da esteira do projeto para `etapaAtual = Math.max(etapaAtual, 2)`.\n\n4. **Catálogo Normativo DIS-NOR-053 (`/api/v1/catalogo`)**:\n   - Acesso público (sem exigência de token JWT) com cache de alta performance em memória RAM (`@Cacheable` / SLA sub-15ms).\n   - `GET /api/v1/catalogo/faixas-area`: Quadro 35 (Faixas de área útil privativa e demandas unitárias $D_i$).\n   - `GET /api/v1/catalogo/fatores-coincidencia-residencial`: Quadro 36 (Fatores de coincidência $F_c$ e regra regulatória de Smart Studios $F_c = 0.90$ para $N > 15$).\n   - `GET /api/v1/catalogo/fatores-seguranca-residencial`: Quadro 37 (Patamares do fator de segurança $F_r$ em função da demanda bruta $D_r$).\n\n5. **Utilitários (`/test`)**:\n   - Endpoint de verificação rápida e sanidade da API.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1368,7 +1368,550 @@
       ]
     },
     {
-      "name": "3. Utilitários",
+      "name": "3. Wizard de Dimensionamento Elétrico",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{jwt_token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Etapa 2 — Unidades Residenciais (Salvar Tipologias)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    },\n    {\n      \"areaUtilM2\": 78.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}",
+                "etapa-residencial"
+              ]
+            },
+            "description": "Grava as tipologias de apartamentos na tabela `residential_typologies` de forma atômica e idempotente. Executa o motor normativo de cálculo (`ResidentialCalculationEngine` — DIS-NOR-053), atualiza a etapa do wizard (`etapaAtual = Math.max(etapaAtual, 2)`) e retorna a resposta consolidada enxuta contendo a Demanda Residencial Final ($D_{rf}$)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Resposta consolidada enxuta da Etapa 2\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.sucesso).to.eql(true);",
+                  "    pm.expect(jsonData.projectId).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.demandaResidencialFinalDrfKva).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.demandaResidencialFinalDrfKva).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Desacoplamento de métricas intermediárias\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.demandaResidencialBrutaDrKva).to.be.undefined;",
+                  "    pm.expect(jsonData.fatorCoincidenciaFc).to.be.undefined;",
+                  "    pm.expect(jsonData.fatorSegurancaFr).to.be.undefined;",
+                  "    pm.expect(jsonData.totalApartamentos).to.be.undefined;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Etapa Residencial Salva com Sucesso",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    },\n    {\n      \"areaUtilM2\": 78.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}",
+                    "etapa-residencial"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"sucesso\": true,\n  \"projectId\": 1,\n  \"demandaResidencialFinalDrfKva\": 122.72\n}"
+            },
+            {
+              "name": "400 Bad Request - Validação de Entrada (RFC 7807)",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": -10.00,\n      \"quantidadeUnidades\": 0,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}",
+                    "etapa-residencial"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 400,\n  \"message\": \"Erro de validação nos dados fornecidos\",\n  \"errors\": {\n    \"tipologias[0].areaUtilM2\": \"A área útil privativa deve ser estritamente maior que zero\",\n    \"tipologias[0].quantidadeUnidades\": \"A quantidade de unidades deve ser um número positivo maior que zero\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized - Token Ausente ou Inválido",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}",
+                    "etapa-residencial"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 401,\n  \"message\": \"Token de autenticação ausente ou inválido\"\n}"
+            },
+            {
+              "name": "403 Forbidden - Projeto Pertence a Outro Projetista",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "{{projectId}}",
+                    "etapa-residencial"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 403,\n  \"message\": \"Acesso negado: o projeto pertence a outro projetista\"\n}"
+            },
+            {
+              "name": "404 Not Found - Projeto Não Encontrado",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/projects/99999/etapa-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "projects",
+                    "99999",
+                    "etapa-residencial"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 404,\n  \"message\": \"Projeto não encontrado com id 99999\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Catálogo Normativo (DIS-NOR-053)",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Faixas de Área e Demanda Unitária (Quadro 35)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/catalogo/faixas-area",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "catalogo",
+                "faixas-area"
+              ]
+            },
+            "description": "Consulta todas as faixas normativas de área útil privativa ($m^2$) e respectivas demandas unitárias ($D_i$ em kVA) segundo o Quadro 35 da DIS-NOR-053 (Rev. 06). Endpoint público com cache em memória RAM (`@Cacheable`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna lista de faixas normativas do Quadro 35\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.length).to.be.above(0);",
+                  "    pm.expect(jsonData[0]).to.have.property(\"id\");",
+                  "    pm.expect(jsonData[0]).to.have.property(\"faixa\");",
+                  "    pm.expect(jsonData[0]).to.have.property(\"rotulo\");",
+                  "    pm.expect(jsonData[0]).to.have.property(\"minAreaM2\");",
+                  "    pm.expect(jsonData[0]).to.have.property(\"maxAreaM2\");",
+                  "    pm.expect(jsonData[0]).to.have.property(\"demandaUnitariakVa\");",
+                  "    pm.expect(jsonData[0]).to.have.property(\"normaOrigem\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Faixas de Área Recuperadas",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/faixas-area",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "faixas-area"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": 1,\n    \"faixa\": \"ATE_40\",\n    \"rotulo\": \"Até 40 m²\",\n    \"minAreaM2\": 0.00,\n    \"maxAreaM2\": 40.00,\n    \"demandaUnitariakVa\": 1.20,\n    \"normaOrigem\": \"DIS-NOR-053 Quadro 35\"\n  },\n  {\n    \"id\": 2,\n    \"faixa\": \"DE_41_A_45\",\n    \"rotulo\": \"De 41 a 45 m²\",\n    \"minAreaM2\": 41.00,\n    \"maxAreaM2\": 45.00,\n    \"demandaUnitariakVa\": 1.28,\n    \"normaOrigem\": \"DIS-NOR-053 Quadro 35\"\n  },\n  {\n    \"id\": 6,\n    \"faixa\": \"DE_61_A_65\",\n    \"rotulo\": \"De 61 a 65 m²\",\n    \"minAreaM2\": 61.00,\n    \"maxAreaM2\": 65.00,\n    \"demandaUnitariakVa\": 1.47,\n    \"normaOrigem\": \"DIS-NOR-053 Quadro 35\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Fatores de Coincidência Residencial (Quadro 36)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/catalogo/fatores-coincidencia-residencial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "catalogo",
+                "fatores-coincidencia-residencial"
+              ]
+            },
+            "description": "Consulta a tabela de fatores de coincidência ($F_c$) segundo o Quadro 36 da DIS-NOR-053 (Rev. 06) e retorna a regra regulatória de Smart Studios ($F_c = 0.90$ para $N > 15$). Endpoint público com cache em memória RAM (`@Cacheable`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna wrapper do Quadro 36 com regra de Smart Studios\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.norma).to.eql(\"DIS-NOR-053 Quadro 36\");",
+                  "    pm.expect(jsonData.regraEspecialStudios).to.include(\"Smart/Studio\");",
+                  "    pm.expect(jsonData.tabela).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.tabela.length).to.be.above(0);",
+                  "    pm.expect(jsonData.tabela[0]).to.have.property(\"totalApartamentos\");",
+                  "    pm.expect(jsonData.tabela[0]).to.have.property(\"fatorCoincidencia\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Fatores de Coincidência Recuperados",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/fatores-coincidencia-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "fatores-coincidencia-residencial"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"norma\": \"DIS-NOR-053 Quadro 36\",\n  \"regraEspecialStudios\": \"Para edifícios tipo Smart/Studio acima de 15 unidades, adota-se 90% (0,90) fixo\",\n  \"tabela\": [\n    {\n      \"totalApartamentos\": 1,\n      \"fatorCoincidencia\": 1.0000\n    },\n    {\n      \"totalApartamentos\": 10,\n      \"fatorCoincidencia\": 0.9640\n    },\n    {\n      \"totalApartamentos\": 20,\n      \"fatorCoincidencia\": 0.8560\n    },\n    {\n      \"totalApartamentos\": 60,\n      \"fatorCoincidencia\": 0.6823\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Fatores de Segurança Residencial (Quadro 37)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/catalogo/fatores-seguranca-residencial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "catalogo",
+                "fatores-seguranca-residencial"
+              ]
+            },
+            "description": "Consulta os patamares normativos do fator de segurança ($F_r$) em função da demanda bruta acumulada ($D_r$) segundo o Quadro 37 da DIS-NOR-053 (Rev. 06). Endpoint público com cache em memória RAM (`@Cacheable`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Retorna os 4 patamares normativos do Quadro 37\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "    pm.expect(jsonData.length).to.eql(4);",
+                  "    pm.expect(jsonData[0].fatorSegurancaFr).to.eql(1.50);",
+                  "    pm.expect(jsonData[1].fatorSegurancaFr).to.eql(1.30);",
+                  "    pm.expect(jsonData[2].fatorSegurancaFr).to.eql(1.20);",
+                  "    pm.expect(jsonData[3].fatorSegurancaFr).to.eql(1.10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Fatores de Segurança Recuperados",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/fatores-seguranca-residencial",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "fatores-seguranca-residencial"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json;charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n  {\n    \"minDrKva\": 0.00,\n    \"maxDrKva\": 25.00,\n    \"fatorSegurancaFr\": 1.50\n  },\n  {\n    \"minDrKva\": 25.01,\n    \"maxDrKva\": 50.00,\n    \"fatorSegurancaFr\": 1.30\n  },\n  {\n    \"minDrKva\": 50.01,\n    \"maxDrKva\": 100.00,\n    \"fatorSegurancaFr\": 1.20\n  },\n  {\n    \"minDrKva\": 100.01,\n    \"maxDrKva\": 999999.99,\n    \"fatorSegurancaFr\": 1.10\n  }\n]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Utilitários",
       "description": "Endpoints utilitários de diagnóstico da API.",
       "auth": {
         "type": "bearer",
