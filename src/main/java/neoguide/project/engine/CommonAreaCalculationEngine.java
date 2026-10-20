@@ -1,5 +1,6 @@
 package neoguide.project.engine;
 
+import neoguide.project.dto.CommonAreaLoadItemRequest;
 import neoguide.project.engine.model.commonarea.AirConditioningItem;
 import neoguide.project.engine.model.commonarea.ApplianceItem;
 import neoguide.project.engine.model.commonarea.BoilerItem;
@@ -141,6 +142,160 @@ public class CommonAreaCalculationEngine {
                 parcelaI,
                 custom
         );
+    }
+
+    /**
+     * Ponto de entrada para a rota operacional da Etapa 3 (recebendo a lista de cargas híbridas).
+     * Calcula a demanda de cada item individualmente e consolida Ds em kVA.
+     */
+    public CommonAreaCalculationResult calculate(List<CommonAreaLoadItemRequest> cargas) {
+        if (cargas == null || cargas.isEmpty()) {
+            CommonAreaSubtotal zero = zeroSubtotal("Nenhuma carga informada.");
+            return new CommonAreaCalculationResult(
+                    BigDecimal.ZERO.setScale(DISPLAY_SCALE, RM),
+                    zero, zero, zero, zero, zero, zero, zero, zero, zero, zero,
+                    List.of()
+            );
+        }
+
+        // 1. Pré-processar contagens e máximos para aplicação de fatores de agrupamento
+        int qtdFornos = 0;
+        int qtdCooktops = 0;
+        int qtdBoilers = 0;
+        int qtdAquecedoresPassagem = 0;
+        BigDecimal maiorMotorAtivoKva = BigDecimal.ZERO;
+        int indexMaiorMotorAtivo = -1;
+
+        for (int i = 0; i < cargas.size(); i++) {
+            CommonAreaLoadItemRequest item = cargas.get(i);
+            if (item == null) continue;
+            String sub = item.getSubmodulo() != null ? item.getSubmodulo().toUpperCase() : "";
+            int qtd = item.getQuantidade() != null && item.getQuantidade() > 0 ? item.getQuantidade() : 1;
+            String tipo = item.getTipoEquipamento() != null ? item.getTipoEquipamento().toUpperCase() : "";
+
+            if ("COCCAO".equals(sub)) {
+                if (tipo.contains("COOKTOP") || tipo.contains("FOGAO") || tipo.contains("INDUCAO")) {
+                    qtdCooktops += qtd;
+                } else {
+                    qtdFornos += qtd;
+                }
+            } else if ("AQUECIMENTO".equals(sub)) {
+                if (tipo.contains("BOILER") || tipo.contains("ACUMULACAO")) {
+                    qtdBoilers += qtd;
+                } else {
+                    qtdAquecedoresPassagem += qtd;
+                }
+            } else if ("MOTORES".equals(sub)) {
+                if (!item.isReserva()) {
+                    BigDecimal kvaUnitario = inferMotorKva(item);
+                    if (kvaUnitario.compareTo(maiorMotorAtivoKva) > 0) {
+                        maiorMotorAtivoKva = kvaUnitario;
+                        indexMaiorMotorAtivo = i;
+                    }
+                }
+            }
+        }
+
+        BigDecimal fdFornos = resolveTabela9FatorDemanda(qtdFornos);
+        BigDecimal fdCooktops = resolveTabela10FatorDemanda(qtdCooktops);
+        BigDecimal fdBoilers = resolveTabela8FatorDemanda(qtdBoilers);
+        BigDecimal fdAquecedores = resolveTabela7FatorDemanda(qtdAquecedoresPassagem);
+
+        List<BigDecimal> demandasPorItem = new ArrayList<>(cargas.size());
+        BigDecimal totalDsKva = BigDecimal.ZERO;
+
+        for (int i = 0; i < cargas.size(); i++) {
+            CommonAreaLoadItemRequest item = cargas.get(i);
+            if (item == null) {
+                demandasPorItem.add(BigDecimal.ZERO.setScale(DISPLAY_SCALE, RM));
+                continue;
+            }
+
+            BigDecimal demandaItemKva = BigDecimal.ZERO;
+            int qtd = item.getQuantidade() != null && item.getQuantidade() > 0 ? item.getQuantidade() : 1;
+            String sub = item.getSubmodulo() != null ? item.getSubmodulo().toUpperCase() : "";
+            String tipo = item.getTipoEquipamento() != null ? item.getTipoEquipamento().toUpperCase() : "";
+
+            if ("PERSONALIZADO".equalsIgnoreCase(item.getOrigem())) {
+                BigDecimal pKw = item.getPotenciaNominalKw() != null ? item.getPotenciaNominalKw() : BigDecimal.ZERO;
+                BigDecimal fp = item.getFatorPotencia() != null && item.getFatorPotencia().compareTo(BigDecimal.ZERO) > 0 ? item.getFatorPotencia() : BigDecimal.ONE;
+                BigDecimal fd = item.getFatorDemanda() != null ? item.getFatorDemanda() : BigDecimal.ONE;
+                demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(fd).divide(fp, CALC_SCALE, RM);
+            } else {
+                switch (sub) {
+                    case "ILUMINACAO_TUG" -> {
+                        BigDecimal pKw = item.getPotenciaNominalKw() != null ? item.getPotenciaNominalKw() : BigDecimal.ZERO;
+                        if (tipo.contains("TUG") || tipo.contains("TOMADA")) {
+                            demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(new BigDecimal("0.50")).divide(FP_TUG, CALC_SCALE, RM);
+                        } else {
+                            demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).divide(FP_ILUMINACAO, CALC_SCALE, RM);
+                        }
+                    }
+                    case "CLIMATIZACAO" -> {
+                        BigDecimal pKw = item.getPotenciaNominalKw() != null ? item.getPotenciaNominalKw() : BigDecimal.ZERO;
+                        demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).divide(FP_CLIMATIZACAO, CALC_SCALE, RM);
+                    }
+                    case "MOTORES" -> {
+                        if (item.isReserva()) {
+                            demandaItemKva = BigDecimal.ZERO;
+                        } else {
+                            BigDecimal kvaUnitario = inferMotorKva(item);
+                            BigDecimal fd = (i == indexMaiorMotorAtivo) ? BigDecimal.ONE : new BigDecimal("0.50");
+                            demandaItemKva = kvaUnitario.multiply(BigDecimal.valueOf(qtd)).multiply(fd);
+                        }
+                    }
+                    case "COCCAO" -> {
+                        BigDecimal pKw = item.getPotenciaNominalKw() != null ? item.getPotenciaNominalKw() : BigDecimal.ZERO;
+                        if (tipo.contains("COOKTOP") || tipo.contains("FOGAO") || tipo.contains("INDUCAO")) {
+                            demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(fdCooktops).divide(FP_COOKTOP, CALC_SCALE, RM);
+                        } else {
+                            demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(fdFornos).divide(FP_FORNO, CALC_SCALE, RM);
+                        }
+                    }
+                    case "AQUECIMENTO" -> {
+                        BigDecimal pKw = item.getPotenciaNominalKw() != null ? item.getPotenciaNominalKw() : BigDecimal.ZERO;
+                        if (tipo.contains("BOILER") || tipo.contains("ACUMULACAO")) {
+                            demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(fdBoilers).divide(FP_BOILER, CALC_SCALE, RM);
+                        } else {
+                            demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(fdAquecedores).divide(FP_AQUECEDOR_RAPIDO, CALC_SCALE, RM);
+                        }
+                    }
+                    default -> {
+                        BigDecimal pKw = item.getPotenciaNominalKw() != null ? item.getPotenciaNominalKw() : BigDecimal.ZERO;
+                        BigDecimal fp = item.getFatorPotencia() != null && item.getFatorPotencia().compareTo(BigDecimal.ZERO) > 0 ? item.getFatorPotencia() : BigDecimal.ONE;
+                        BigDecimal fd = item.getFatorDemanda() != null ? item.getFatorDemanda() : BigDecimal.ONE;
+                        demandaItemKva = pKw.multiply(BigDecimal.valueOf(qtd)).multiply(fd).divide(fp, CALC_SCALE, RM);
+                    }
+                }
+            }
+
+            BigDecimal scaledItemKva = demandaItemKva.setScale(DISPLAY_SCALE, RM);
+            demandasPorItem.add(scaledItemKva);
+            totalDsKva = totalDsKva.add(scaledItemKva);
+        }
+
+        totalDsKva = totalDsKva.setScale(DISPLAY_SCALE, RM);
+        CommonAreaSubtotal summary = new CommonAreaSubtotal(
+                totalDsKva,
+                BigDecimal.ZERO,
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                "Demanda calculada a partir de " + cargas.size() + " cargas operacionais."
+        );
+
+        return new CommonAreaCalculationResult(
+                totalDsKva,
+                summary, summary, summary, summary, summary, summary, summary, summary, summary, summary,
+                demandasPorItem
+        );
+    }
+
+    private BigDecimal inferMotorKva(CommonAreaLoadItemRequest item) {
+        if (item.getPotenciaNominalKw() != null && item.getPotenciaNominalKw().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal cvAprox = item.getPotenciaNominalKw().divide(new BigDecimal("0.7355"), 2, RM);
+            return resolveTabela19DemandaKva(cvAprox);
+        }
+        return new BigDecimal("1.31");
     }
 
     // =========================================================================

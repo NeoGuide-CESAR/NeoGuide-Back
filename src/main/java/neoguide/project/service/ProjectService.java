@@ -22,6 +22,13 @@ import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
+import neoguide.project.dto.CommonAreaLoadItemRequest;
+import neoguide.project.dto.CommonAreaStageRequest;
+import neoguide.project.dto.CommonAreaStageResponse;
+import neoguide.project.engine.CommonAreaCalculationEngine;
+import neoguide.project.engine.model.commonarea.CommonAreaCalculationResult;
+import neoguide.project.model.CommonAreaLoad;
+import neoguide.project.repository.CommonAreaLoadRepository;
 import neoguide.project.validation.Validator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,15 +49,21 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final ResidentialTypologyRepository residentialTypologyRepository;
     private final ResidentialCalculationEngine residentialCalculationEngine;
+    private final CommonAreaLoadRepository commonAreaLoadRepository;
+    private final CommonAreaCalculationEngine commonAreaCalculationEngine;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
                           ResidentialTypologyRepository residentialTypologyRepository,
-                          ResidentialCalculationEngine residentialCalculationEngine) {
+                          ResidentialCalculationEngine residentialCalculationEngine,
+                          CommonAreaLoadRepository commonAreaLoadRepository,
+                          CommonAreaCalculationEngine commonAreaCalculationEngine) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.residentialTypologyRepository = residentialTypologyRepository;
         this.residentialCalculationEngine = residentialCalculationEngine;
+        this.commonAreaLoadRepository = commonAreaLoadRepository;
+        this.commonAreaCalculationEngine = commonAreaCalculationEngine;
     }
 
     /**
@@ -423,6 +436,133 @@ public class ProjectService {
                 project.getId(),
                 calcResult.getDemandaFinalDrf()
         );
+    }
+
+    /**
+     * Salva as cargas de áreas comuns e serviços da Etapa 3 de forma atômica e idempotente.
+     */
+    @Transactional
+    public CommonAreaStageResponse saveCommonAreaStage(Long projectId, CommonAreaStageRequest request, Long currentUserId) {
+        validateCommonAreaStageRequest(request);
+
+        Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        CommonAreaCalculationResult calcResult = commonAreaCalculationEngine.calculate(request.getCargas());
+
+        commonAreaLoadRepository.deleteByProjectId(projectId);
+        commonAreaLoadRepository.flush();
+
+        List<CommonAreaLoad> entities = new ArrayList<>();
+        for (int i = 0; i < request.getCargas().size(); i++) {
+            CommonAreaLoadItemRequest item = request.getCargas().get(i);
+            BigDecimal demandaCalculada = (calcResult.getDemandasPorItem() != null && i < calcResult.getDemandasPorItem().size())
+                    ? calcResult.getDemandasPorItem().get(i)
+                    : BigDecimal.ZERO;
+
+            CommonAreaLoad load = new CommonAreaLoad();
+            load.setProject(project);
+            load.setOrigem(item.getOrigem() != null ? item.getOrigem().toUpperCase() : "PERSONALIZADO");
+            load.setSubmodulo(item.getSubmodulo() != null ? item.getSubmodulo().toUpperCase() : "MOTORES");
+            load.setCatalogoMotorId(item.getCatalogoMotorId());
+            load.setCatalogoClimaId(item.getCatalogoClimaId());
+            load.setCatalogoEquipamentoId(item.getCatalogoEquipamentoId());
+            load.setTipoEquipamento(item.getTipoEquipamento());
+            load.setDescricao(item.getDescricao());
+            load.setQuantidade(item.getQuantidade());
+            load.setPotenciaNominalKw(item.getPotenciaNominalKw());
+            load.setFatorPotencia(item.getFatorPotencia());
+            load.setFatorDemanda(item.getFatorDemanda());
+            load.setDemandaCalculadaKva(demandaCalculada);
+            load.setReserva(item.isReserva());
+
+            entities.add(load);
+        }
+        commonAreaLoadRepository.saveAll(entities);
+
+        int currentStage = project.getEtapaAtual() != null ? project.getEtapaAtual() : 1;
+        int novaEtapa = Math.max(currentStage, 3);
+        project.setEtapaAtual(novaEtapa);
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
+
+        return new CommonAreaStageResponse(
+                true,
+                project.getId(),
+                novaEtapa,
+                entities.size(),
+                calcResult.getDemandaServicosDsKva()
+        );
+    }
+
+    private void validateCommonAreaStageRequest(CommonAreaStageRequest request) {
+        Validator validator = Validator.create();
+
+        if (request == null || request.getCargas() == null || request.getCargas().isEmpty()) {
+            validator.custom("cargas", false, "A lista de cargas de áreas comuns não pode ser vazia");
+            validator.validate();
+            return;
+        }
+
+        List<String> submodulosValidos = List.of("ILUMINACAO_TUG", "CLIMATIZACAO", "MOTORES", "COCCAO", "AQUECIMENTO");
+
+        for (int i = 0; i < request.getCargas().size(); i++) {
+            CommonAreaLoadItemRequest item = request.getCargas().get(i);
+            String prefix = "cargas[" + i + "].";
+
+            if (item == null) {
+                validator.custom(prefix, false, "Item de carga não pode ser nulo");
+                continue;
+            }
+
+            // Validação da Origem
+            if (item.getOrigem() == null || (!item.getOrigem().equalsIgnoreCase("CATALOGO") && !item.getOrigem().equalsIgnoreCase("PERSONALIZADO"))) {
+                validator.custom(prefix + "origem", false, "Origem deve ser 'CATALOGO' ou 'PERSONALIZADO'");
+            }
+
+            // Validação do Submódulo
+            if (item.getSubmodulo() == null || !submodulosValidos.contains(item.getSubmodulo().toUpperCase())) {
+                validator.custom(prefix + "submodulo", false, "Submódulo inválido. Valores aceitos: ILUMINACAO_TUG, CLIMATIZACAO, MOTORES, COCCAO, AQUECIMENTO");
+            }
+
+            // Tipo de Equipamento
+            validator.required(prefix + "tipoEquipamento", item.getTipoEquipamento());
+
+            // Quantidade
+            if (item.getQuantidade() == null || item.getQuantidade() <= 0) {
+                validator.custom(prefix + "quantidade", false, "A quantidade deve ser um número inteiro maior que zero");
+            }
+
+            // Regras para item PERSONALIZADO
+            if ("PERSONALIZADO".equalsIgnoreCase(item.getOrigem())) {
+                if (item.getPotenciaNominalKw() == null || item.getPotenciaNominalKw().compareTo(BigDecimal.ZERO) <= 0) {
+                    validator.custom(prefix + "potenciaNominalKw", false, "A potência nominal em kW deve ser maior que zero para cargas personalizadas");
+                }
+                if (item.getFatorPotencia() == null || item.getFatorPotencia().compareTo(BigDecimal.ZERO) <= 0 || item.getFatorPotencia().compareTo(BigDecimal.ONE) > 0) {
+                    validator.custom(prefix + "fatorPotencia", false, "O fator de potência deve estar entre 0.01 e 1.00");
+                }
+                if (item.getFatorDemanda() == null || item.getFatorDemanda().compareTo(BigDecimal.ZERO) < 0 || item.getFatorDemanda().compareTo(BigDecimal.ONE) > 0) {
+                    validator.custom(prefix + "fatorDemanda", false, "O fator de demanda deve estar entre 0.00 e 1.00");
+                }
+            }
+
+            // Regras para item CATALOGO
+            if ("CATALOGO".equalsIgnoreCase(item.getOrigem())) {
+                boolean hasCatalogId = item.getCatalogoMotorId() != null
+                        || item.getCatalogoClimaId() != null
+                        || item.getCatalogoEquipamentoId() != null;
+                if (!hasCatalogId && (item.getTipoEquipamento() == null || item.getTipoEquipamento().isBlank())) {
+                    validator.custom(prefix + "catalogo", false, "Para itens de catálogo, informe ao menos um ID de referência normativa ou tipo de equipamento");
+                }
+            }
+        }
+
+        validator.validate();
     }
 
     private void validateResidentialStageRequest(ResidentialStageRequest request) {
