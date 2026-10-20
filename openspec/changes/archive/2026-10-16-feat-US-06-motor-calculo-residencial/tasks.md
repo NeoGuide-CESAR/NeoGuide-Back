@@ -1,0 +1,25 @@
+# Tarefas de Implementação: Motor de Cálculo Residencial (Drf — DIS-NOR-053)
+
+- [x] 1. Modelos de Domínio do Motor (Records Java 21 / Zero Lombok) <!-- id: 1 -->
+  - [x] 1.1 Criar `ResidentialTypologyItem` em `neoguide.project.engine.model`
+  - [x] 1.2 Criar `ResidentialCalculationInput` em `neoguide.project.engine.model`
+  - [x] 1.3 Criar `ResidentialTypologyOutput` em `neoguide.project.engine.model`
+  - [x] 1.4 Criar `ResidentialCalculationResult` em `neoguide.project.engine.model` com getters auxiliares
+- [x] 2. Componente de Cálculo Normativo <!-- id: 2 -->
+  - [x] 2.1 Criar interface `ResidentialEngine` (ou classe direta `@Component` pura)
+  - [x] 2.2 Implementar lookup estático do Quadro 35 (resolução de $D_i$ por área útil privativa)
+  - [x] 2.3 Implementar interpolação e regras do Quadro 36 (fator de coincidência $F_c$ e trava de 0.90 para Smart Studios $> 15$)
+  - [x] 2.4 Implementar patamares do Quadro 37 (fator de segurança $F_r$)
+  - [x] 2.5 Implementar consolidação matemática de $D_r$, $D_{tr}$ e $D_{rf}$ com `BigDecimal` e `HALF_UP`
+  - [x] 2.6 Implementar sobrecargas de método `calculate` e validação defensiva de dados
+- [x] 3. Testes Unitários e Validação <!-- id: 3 -->
+  - [x] 3.1 Criar `ResidentialCalculationEngineTest` com o caso canônico do memorial (100 aptos)
+  - [x] 3.2 Testar comportamento de Smart Studios (N > 15 vs N <= 15)
+  - [x] 3.3 Testar fronteiras de $F_r$ no Quadro 37
+  - [x] 3.4 Testar inferência automática de $D_i$ no Quadro 35
+  - [x] 3.5 Testar validações defensivas de entrada
+  - [x] 3.6 Executar `./mvnw.cmd test` e garantir 100% de sucesso
+- [x] 4. Sincronização e Arquivamento OpenSpec <!-- id: 4 -->
+  - [x] 4.1 Marcar todas as tarefas como concluídas
+  - [x] 4.2 Sincronizar delta spec para `openspec/specs/residential/spec.md`
+  - [x] 4.3 Mover change para pasta de arquivamento `openspec/changes/archive/2026-10-16-feat-US-06-motor-calculo-residencial/`
