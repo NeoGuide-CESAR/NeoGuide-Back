@@ -67,6 +67,14 @@ public class UsuarioResponseDTO {
         this.name = name;
     }
 
+    public String getNome() {
+        return name;
+    }
+
+    public void setNome(String nome) {
+        this.name = nome;
+    }
+
     public String getEmail() {
         return email;
     }

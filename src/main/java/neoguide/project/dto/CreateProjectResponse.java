@@ -61,6 +61,16 @@ public class CreateProjectResponse {
         this.titulo = titulo;
     }
 
+    public String getNome() {
+        return titulo;
+    }
+
+    public void setNome(String nome) {
+        if (this.titulo == null || this.titulo.isBlank()) {
+            this.titulo = nome;
+        }
+    }
+
     public String getStatus() {
         return status;
     }

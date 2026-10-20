@@ -25,6 +25,16 @@ public class UsuarioUpdateDTO {
         this.name = name;
     }
 
+    public String getNome() {
+        return name;
+    }
+
+    public void setNome(String nome) {
+        if (this.name == null || this.name.isBlank()) {
+            this.name = nome;
+        }
+    }
+
     public String getTelefone() {
         return telefone;
     }

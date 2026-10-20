@@ -29,6 +29,13 @@ public class LoginRequest {
         }
     }
 
+    public void setIdentificador(String identificador) {
+        this.login = identificador;
+        if (this.email == null) {
+            this.email = identificador;
+        }
+    }
+
     public String getEmail() {
         if (email != null && !email.isBlank()) {
             return email;
@@ -49,5 +56,11 @@ public class LoginRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setSenha(String senha) {
+        if (this.password == null || this.password.isBlank()) {
+            this.password = senha;
+        }
     }
 }
