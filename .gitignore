@@ -38,3 +38,4 @@ backend-consolidado/
 .worktrees/
 openspec/
 .agent/
+.agents/
