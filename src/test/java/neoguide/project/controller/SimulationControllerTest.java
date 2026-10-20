@@ -1,11 +1,13 @@
 package neoguide.project.controller;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -15,6 +17,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import neoguide.project.model.User;
+import neoguide.project.repository.UserRepository;
+import neoguide.project.security.jwt.JwtService;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -23,8 +29,26 @@ class SimulationControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
+
+    private String token;
+
+    @BeforeEach
+    void setUp() {
+        User user = userRepository.findByEmail("simulacao.test@empresa.com")
+                .orElseGet(() -> userRepository.save(new User("Projetista Simulação", "simulacao.test@empresa.com", passwordEncoder.encode("SenhaForte@123"))));
+        token = jwtService.generateToken(user);
+    }
+
     @Test
-    @DisplayName("POST /api/v1/simulacao/pre-calculo-etapa deve retornar 200 OK com resultados de pre-calculo em RAM")
+    @DisplayName("POST /api/v1/simulacao/pre-calculo-etapa deve retornar 200 OK com resultados de pre-calculo em RAM quando autenticado")
     void devePreCalcularComSucessoNaRotaPadrao() throws Exception {
         String payload = """
         {
@@ -65,6 +89,7 @@ class SimulationControllerTest {
         """;
 
         mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
@@ -95,11 +120,21 @@ class SimulationControllerTest {
         """;
 
         mockMvc.perform(post("/simulacao/pre-calculo-etapa")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tempoProcessamentoMs", notNullValue()))
                 .andExpect(jsonPath("$.demandaGlobalDedKva").value(0.0))
                 .andExpect(jsonPath("$.demandaQdgKva").value(0.0));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/simulacao/pre-calculo-etapa sem token deve retornar 401 Unauthorized")
+    void deveRetornar401QuandoNaoAutenticado() throws Exception {
+        mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
     }
 }

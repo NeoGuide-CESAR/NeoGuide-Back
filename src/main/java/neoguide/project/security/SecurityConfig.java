@@ -49,9 +49,7 @@ public class SecurityConfig {
                                 "/error",
                                 "/api/v1/catalogo/**",
                                 "/api/v1/cep/**",
-                                "/cep/**",
-                                "/api/v1/simulacao/**",
-                                "/simulacao/**"
+                                "/cep/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
