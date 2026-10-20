@@ -9,6 +9,7 @@ import neoguide.project.repository.CommercialUnitRepository;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,14 @@ class CommercialControllerTest {
         projetoDono.setTensaoFornecimento("380_220V");
         projetoDono.setEtapaAtual(3);
         projetoDono = projectRepository.save(projetoDono);
+    }
+
+
+    @AfterEach
+    void tearDown() {
+        commercialUnitRepository.deleteAll();
+        projectRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     @Test

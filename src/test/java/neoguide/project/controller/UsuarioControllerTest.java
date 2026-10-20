@@ -1,5 +1,9 @@
 package neoguide.project.controller;
 
+import neoguide.project.repository.CommonAreaLoadRepository;
+import neoguide.project.repository.CommercialUnitRepository;
+import neoguide.project.repository.SpecialLoadsRepository;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.dto.AlterarSenhaDTO;
 import neoguide.project.dto.UsuarioUpdateDTO;
@@ -45,6 +49,14 @@ class UsuarioControllerTest {
 
     @Autowired
     private ResidentialTypologyRepository residentialTypologyRepository;
+    @Autowired
+    private CommonAreaLoadRepository commonAreaLoadRepository;
+
+    @Autowired
+    private CommercialUnitRepository commercialUnitRepository;
+
+    @Autowired
+    private SpecialLoadsRepository specialLoadsRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -57,6 +69,9 @@ class UsuarioControllerTest {
 
     @BeforeEach
     void setUp() {
+        specialLoadsRepository.deleteAll();
+        commercialUnitRepository.deleteAll();
+        commonAreaLoadRepository.deleteAll();
         residentialTypologyRepository.deleteAll();
         projectRepository.deleteAll();
         userRepository.deleteAll();
