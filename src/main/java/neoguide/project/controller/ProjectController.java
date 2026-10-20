@@ -1,5 +1,7 @@
 package neoguide.project.controller;
 
+import neoguide.project.dto.CommercialStageRequest;
+import neoguide.project.dto.CommercialStageResponse;
 import neoguide.project.dto.CommonAreaStageRequest;
 import neoguide.project.dto.CommonAreaStageResponse;
 import neoguide.project.dto.CreateProjectRequest;
@@ -111,6 +113,17 @@ public class ProjectController {
             Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
         CommonAreaStageResponse response = projectService.saveCommonAreaStage(id, request, userId);
+        return ResponseEntity.ok(response);
+    }
+
+
+    @PutMapping({"/{id}/etapa-comercial", "/api/v1/projects/{id}/etapa-comercial", "/projects/{id}/etapa-comercial"})
+    public ResponseEntity<CommercialStageResponse> saveCommercialStage(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) CommercialStageRequest request,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        CommercialStageResponse response = projectService.saveCommercialStage(id, request, userId);
         return ResponseEntity.ok(response);
     }
 

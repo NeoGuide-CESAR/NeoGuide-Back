@@ -22,6 +22,17 @@ import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
+import neoguide.project.dto.CommercialStageRequest;
+import neoguide.project.dto.CommercialStageResponse;
+import neoguide.project.dto.CommercialUnitItemRequest;
+import neoguide.project.dto.CommercialUnitItemResponse;
+import neoguide.project.engine.CommercialCalculationEngine;
+import neoguide.project.engine.model.CommercialCalculationInput;
+import neoguide.project.engine.model.CommercialCalculationResult;
+import neoguide.project.engine.model.CommercialUnitInput;
+import neoguide.project.engine.model.CommercialUnitResult;
+import neoguide.project.model.CommercialUnit;
+import neoguide.project.repository.CommercialUnitRepository;
 import neoguide.project.dto.CommonAreaLoadItemRequest;
 import neoguide.project.dto.CommonAreaStageRequest;
 import neoguide.project.dto.CommonAreaStageResponse;
@@ -36,9 +47,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,19 +64,25 @@ public class ProjectService {
     private final ResidentialCalculationEngine residentialCalculationEngine;
     private final CommonAreaLoadRepository commonAreaLoadRepository;
     private final CommonAreaCalculationEngine commonAreaCalculationEngine;
+    private final CommercialUnitRepository commercialUnitRepository;
+    private final CommercialCalculationEngine commercialCalculationEngine;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
                           ResidentialTypologyRepository residentialTypologyRepository,
                           ResidentialCalculationEngine residentialCalculationEngine,
                           CommonAreaLoadRepository commonAreaLoadRepository,
-                          CommonAreaCalculationEngine commonAreaCalculationEngine) {
+                          CommonAreaCalculationEngine commonAreaCalculationEngine,
+                          CommercialUnitRepository commercialUnitRepository,
+                          CommercialCalculationEngine commercialCalculationEngine) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.residentialTypologyRepository = residentialTypologyRepository;
         this.residentialCalculationEngine = residentialCalculationEngine;
         this.commonAreaLoadRepository = commonAreaLoadRepository;
         this.commonAreaCalculationEngine = commonAreaCalculationEngine;
+        this.commercialUnitRepository = commercialUnitRepository;
+        this.commercialCalculationEngine = commercialCalculationEngine;
     }
 
     /**
@@ -583,6 +602,150 @@ public class ProjectService {
                 if (item.getQuantidadeUnidades() == null || item.getQuantidadeUnidades() <= 0) {
                     validator.custom(prefix + "quantidadeUnidades", false, "A quantidade de unidades deve ser um número positivo maior que zero");
                 }
+            }
+        }
+        validator.validate();
+    }
+
+    /**
+     * Salva as unidades comerciais da Etapa 4 de forma atômica e idempotente.
+     */
+    @Transactional
+    public CommercialStageResponse saveCommercialStage(Long projectId, CommercialStageRequest request, Long currentUserId) {
+        validateCommercialStageRequest(request);
+
+        Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        boolean hasCommercial = request != null && request.getUnidadesComerciais() != null && !request.getUnidadesComerciais().isEmpty();
+
+        commercialUnitRepository.deleteByProjectId(projectId);
+        commercialUnitRepository.flush();
+
+        int currentStage = project.getEtapaAtual() != null ? project.getEtapaAtual() : 1;
+        int novaEtapa = Math.max(currentStage, 4);
+        project.setEtapaAtual(novaEtapa);
+        project.setUpdatedAt(LocalDateTime.now());
+
+        if (!hasCommercial) {
+            CommercialCalculationResult calcResult = commercialCalculationEngine.calcularDemandaComercial(
+                    new CommercialCalculationInput(false, Collections.emptyList())
+            );
+            project.setPossuiComercial(false);
+            projectRepository.save(project);
+
+            return new CommercialStageResponse(
+                    true,
+                    project.getId(),
+                    novaEtapa,
+                    0,
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    calcResult.memoriaCalculo(),
+                    Collections.emptyList()
+            );
+        }
+
+        List<CommercialUnitInput> engineInputs = new ArrayList<>();
+        for (CommercialUnitItemRequest item : request.getUnidadesComerciais()) {
+            engineInputs.add(new CommercialUnitInput(
+                    item.getIdentificacao(),
+                    item.getAtividadeComercial(),
+                    item.getAreaM2(),
+                    item.getPotenciaInstaladaKw()
+            ));
+        }
+
+        CommercialCalculationResult calcResult = commercialCalculationEngine.calcularDemandaComercial(
+                new CommercialCalculationInput(true, engineInputs)
+        );
+
+        List<CommercialUnit> entitiesToSave = new ArrayList<>();
+        List<CommercialUnitResult> engineUnits = calcResult.unidadesDetalhadas();
+
+        for (int i = 0; i < request.getUnidadesComerciais().size(); i++) {
+            CommercialUnitItemRequest reqItem = request.getUnidadesComerciais().get(i);
+            CommercialUnitResult resItem = (engineUnits != null && i < engineUnits.size()) ? engineUnits.get(i) : null;
+
+            BigDecimal fd = resItem != null ? resItem.fatorDemandaPonderado() : BigDecimal.ONE;
+            BigDecimal demKva = resItem != null ? resItem.demandaCalculadaKva() : BigDecimal.ZERO;
+
+            CommercialUnit entity = new CommercialUnit(
+                    project,
+                    reqItem.getIdentificacao(),
+                    reqItem.getAtividadeComercial(),
+                    reqItem.getAreaM2(),
+                    reqItem.getPotenciaInstaladaKw(),
+                    fd,
+                    demKva
+            );
+            entitiesToSave.add(entity);
+        }
+
+        List<CommercialUnit> savedEntities = commercialUnitRepository.saveAll(entitiesToSave);
+
+        project.setPossuiComercial(true);
+        projectRepository.save(project);
+
+        List<CommercialUnitItemResponse> responseUnits = new ArrayList<>();
+        for (CommercialUnit cu : savedEntities) {
+            responseUnits.add(new CommercialUnitItemResponse(
+                    cu.getId(),
+                    cu.getIdentificacao(),
+                    cu.getAtividadeComercial(),
+                    cu.getAreaM2(),
+                    cu.getPotenciaInstaladaKw(),
+                    cu.getFatorDemanda(),
+                    cu.getDemandaCalculadaKva()
+            ));
+        }
+
+        return new CommercialStageResponse(
+                true,
+                project.getId(),
+                novaEtapa,
+                savedEntities.size(),
+                calcResult.potenciaTotalInstaladaKw(),
+                calcResult.demandaComercialDcKva(),
+                calcResult.memoriaCalculo(),
+                responseUnits
+        );
+    }
+
+    private void validateCommercialStageRequest(CommercialStageRequest request) {
+        if (request == null || request.getUnidadesComerciais() == null || request.getUnidadesComerciais().isEmpty()) {
+            return;
+        }
+
+        Validator validator = Validator.create();
+        for (int i = 0; i < request.getUnidadesComerciais().size(); i++) {
+            CommercialUnitItemRequest item = request.getUnidadesComerciais().get(i);
+            String prefix = "unidadesComerciais[" + i + "].";
+            if (item == null) {
+                validator.custom(prefix, false, "Item de unidade comercial não pode ser nulo");
+                continue;
+            }
+            validator.required(prefix + "identificacao", item.getIdentificacao());
+            if (item.getIdentificacao() != null && item.getIdentificacao().length() > 100) {
+                validator.custom(prefix + "identificacao", false, "A identificação deve conter no máximo 100 caracteres");
+            }
+
+            validator.required(prefix + "atividadeComercial", item.getAtividadeComercial());
+            if (item.getAtividadeComercial() != null && item.getAtividadeComercial().length() > 100) {
+                validator.custom(prefix + "atividadeComercial", false, "A atividade comercial deve conter no máximo 100 caracteres");
+            }
+
+            if (item.getPotenciaInstaladaKw() == null || item.getPotenciaInstaladaKw().compareTo(BigDecimal.ZERO) <= 0) {
+                validator.custom(prefix + "potenciaInstaladaKw", false, "A potência instalada em kW deve ser maior que zero");
+            }
+
+            if (item.getAreaM2() != null && item.getAreaM2().compareTo(BigDecimal.ZERO) <= 0) {
+                validator.custom(prefix + "areaM2", false, "A área em m² deve ser maior que zero quando informada");
             }
         }
         validator.validate();
