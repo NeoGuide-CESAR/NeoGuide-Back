@@ -3,6 +3,8 @@ package neoguide.project.controller;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.ResidentialStageRequest;
+import neoguide.project.dto.ResidentialStageResponse;
 import neoguide.project.exception.UnauthorizedException;
 import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.User;
@@ -19,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -66,6 +69,16 @@ public class ProjectController {
                                                    Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
         return ResponseEntity.ok(projectService.getProjectById(id, userId));
+    }
+
+    @PutMapping("/{id}/etapa-residencial")
+    public ResponseEntity<ResidentialStageResponse> saveResidentialStage(
+            @PathVariable("id") Long id,
+            @RequestBody ResidentialStageRequest request,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        ResidentialStageResponse response = projectService.saveResidentialStage(id, request, userId);
+        return ResponseEntity.ok(response);
     }
 
     private Long getAuthenticatedUserId(Authentication authentication) {

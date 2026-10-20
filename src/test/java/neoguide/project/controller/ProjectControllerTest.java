@@ -2,11 +2,15 @@ package neoguide.project.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.dto.CreateProjectRequest;
+import neoguide.project.dto.ResidentialStageRequest;
+import neoguide.project.dto.ResidentialTypologyItemRequest;
 import neoguide.project.model.Project;
 import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.ProjectType;
+import neoguide.project.model.ResidentialTypology;
 import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
+import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,12 +24,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -45,6 +52,9 @@ class ProjectControllerTest {
     private ProjectRepository projectRepository;
 
     @Autowired
+    private ResidentialTypologyRepository residentialTypologyRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -57,6 +67,7 @@ class ProjectControllerTest {
 
     @BeforeEach
     void setUp() {
+        residentialTypologyRepository.deleteAll();
         projectRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -417,5 +428,253 @@ class ProjectControllerTest {
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.protocolo", is("PRJ-2026-0030")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com dados válidos deve retornar 200 OK e resposta consolidada enxuta")
+    void shouldSaveResidentialStageSuccessfully() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0040");
+        proj.setTitulo("Edifício Solar dos Pinheiros");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setEtapaAtual(1);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 50, false),
+                new ResidentialTypologyItemRequest(new BigDecimal("78.00"), 50, false)
+        ));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+
+        List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
+        assertEquals(2, typologies.size());
+        assertEquals("Tipologia 65.00m²", typologies.get(0).getNome());
+        assertEquals(new BigDecimal("1.47"), typologies.get(0).getDemandaUnitariaKva());
+        assertEquals(new BigDecimal("73.50"), typologies.get(0).getDemandaTotalTipologiaKva());
+
+        assertEquals("Tipologia 78.00m²", typologies.get(1).getNome());
+        assertEquals(new BigDecimal("1.80"), typologies.get(1).getDemandaUnitariaKva());
+        assertEquals(new BigDecimal("90.00"), typologies.get(1).getDemandaTotalTipologiaKva());
+
+        Project updated = projectRepository.findById(saved.getId()).orElseThrow();
+        assertEquals(2, updated.getEtapaAtual());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com JSON puro enxuto deve salvar e retornar 200 OK")
+    void shouldSaveResidentialStageWithLeanJsonPayload() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0045");
+        proj.setTitulo("Edifício Contrato Enxuto");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setEtapaAtual(1);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        String jsonPayload = """
+                {
+                  "tipologias": [
+                    {
+                      "areaUtilM2": 65.00,
+                      "quantidadeUnidades": 50,
+                      "isSmartStudio": false
+                    },
+                    {
+                      "areaUtilM2": 78.00,
+                      "quantidadeUnidades": 50,
+                      "isSmartStudio": false
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+
+        List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
+        assertEquals(2, typologies.size());
+        assertEquals("Tipologia 65.00m²", typologies.get(0).getNome());
+        assertEquals("Tipologia 78.00m²", typologies.get(1).getNome());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial sucessivo deve ser idempotente e sobrescrever tipologias")
+    void shouldBeIdempotentOnConsecutiveCalls() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0041");
+        proj.setTitulo("Edifício Idempotente");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setEtapaAtual(1);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ResidentialStageRequest firstRequest = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 50, false),
+                new ResidentialTypologyItemRequest(new BigDecimal("78.00"), 50, false)
+        ));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+
+        assertEquals(2, residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId()).size());
+
+        // Segunda chamada com nova composição (ex: apenas 1 studio)
+        ResidentialStageRequest secondRequest = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("30.00"), 15, true)
+        ));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", notNullValue()));
+
+        List<ResidentialTypology> typologiesAfter = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
+        assertEquals(1, typologiesAfter.size());
+        assertEquals("Tipologia 30.00m²", typologiesAfter.get(0).getNome());
+        assertEquals(15, typologiesAfter.get(0).getQuantidadeUnidades());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com payload inválido deve retornar 400 Bad Request RFC 7807")
+    void shouldReturn400WhenPayloadIsInvalid() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0042");
+        proj.setTitulo("Projeto Teste Erro");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        // Lista de tipologias vazia
+        ResidentialStageRequest reqVazia = new ResidentialStageRequest(List.of());
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqVazia)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.errors.tipologias", notNullValue()));
+
+        // Item com área negativa e quantidade zero
+        ResidentialStageRequest reqCamposInvalidos = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("-10.00"), 0, false)
+        ));
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqCamposInvalidos)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.errors['tipologias[0].areaUtilM2']", notNullValue()))
+                .andExpect(jsonPath("$.errors['tipologias[0].quantidadeUnidades']", notNullValue()));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial por outro projetista deve retornar 403 Forbidden")
+    void shouldReturn403WhenOtherUserAttemptsToSaveResidentialStage() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0043");
+        proj.setTitulo("Projeto Dono Exclusivo");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 20, false)
+        ));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenOutro)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.message", containsString("Acesso negado")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial sem token deve retornar 401 Unauthorized")
+    void shouldReturn401WhenNoTokenProvided() throws Exception {
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 20, false)
+        ));
+
+        mockMvc.perform(put("/api/v1/projects/1/etapa-residencial")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status", is(401)));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com ID inexistente deve retornar 404 Not Found")
+    void shouldReturn404WhenProjectDoesNotExist() throws Exception {
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 20, false)
+        ));
+
+        mockMvc.perform(put("/api/v1/projects/99999/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)));
+    }
+
+    @Test
+    @DisplayName("PUT /projects/{id}/etapa-residencial rota legada deve funcionar com 200 OK")
+    void shouldSupportLegacyEtapaResidencialEndpoint() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0044");
+        proj.setTitulo("Projeto Rota Legada Etapa 2");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 10, false)
+        ));
+
+        mockMvc.perform(put("/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", notNullValue()));
     }
 }
