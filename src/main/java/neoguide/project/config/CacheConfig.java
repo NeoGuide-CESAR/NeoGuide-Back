@@ -13,9 +13,17 @@ public class CacheConfig {
     @Bean
     public CacheManager cacheManager() {
         return new ConcurrentMapCacheManager(
+                // Caches residenciais (US-08)
                 "catalogoFaixasArea",
                 "catalogoFatoresCoincidencia",
-                "catalogoFatoresSeguranca"
+                "catalogoFatoresSeguranca",
+                // Caches de áreas comuns e serviços (US-11)
+                "catalogoMotoresPadrao",
+                "catalogoAparelhosClimatizacao",
+                "catalogoFatoresArCondicionado",
+                "catalogoFatoresCooktop",
+                "catalogoFatoresBoilers",
+                "catalogoFatoresAquecedoresPassagem"
         );
     }
 }
