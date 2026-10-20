@@ -12,15 +12,11 @@
 {
   "tipologias": [
     {
-      "nome": "Tipo A (2Q)",
-      "catalogoFaixaId": 6,
       "areaUtilM2": 65.00,
       "quantidadeUnidades": 50,
       "isSmartStudio": false
     },
     {
-      "nome": "Tipo B (3Q)",
-      "catalogoFaixaId": 8,
       "areaUtilM2": 78.00,
       "quantidadeUnidades": 50,
       "isSmartStudio": false
@@ -34,11 +30,6 @@
 {
   "sucesso": true,
   "projectId": 1,
-  "etapaAtual": 2,
-  "totalApartamentos": 100,
-  "demandaResidencialBrutaDrKva": 163.50,
-  "fatorCoincidenciaFc": 0.6823,
-  "fatorSegurancaFr": 1.10,
   "demandaResidencialFinalDrfKva": 122.72
 }
 ```
@@ -48,9 +39,9 @@
 1. **Validação de Entrada (400 Bad Request — RFC 7807)**:
    - `tipologias`: não nula e não vazia.
    - Cada item de `tipologias`:
-     - `nome`: obrigatório (não nulo e não em branco).
      - `areaUtilM2`: obrigatório e estritamente positivo ($> 0$).
      - `quantidadeUnidades`: obrigatório e inteiro positivo ($> 0$).
+     - `nome`: opcional; se informado, não pode ser vazio ou apenas espaços em branco.
 2. **Autorização e Existência**:
    - `401 Unauthorized`: token ausente ou inválido.
    - `403 Forbidden`: usuário autenticado não é o proprietário do projeto.
@@ -61,4 +52,4 @@
    - O campo `etapaAtual` do projeto é atualizado para `Math.max(project.getEtapaAtual(), 2)`.
    - O campo `updatedAt` é preenchido com a data/hora corrente.
 5. **Cálculo Normativo**:
-   - A demanda unitária e total de cada tipologia, assim como os totais e fatores ($D_r$, $F_c$, $F_r$, $D_{rf}$), são calculados pelo `ResidentialCalculationEngine`.
+   - A demanda unitária e total de cada tipologia, assim como a Demanda Residencial Final ($D_{rf}$), são calculadas pelo `ResidentialCalculationEngine`.

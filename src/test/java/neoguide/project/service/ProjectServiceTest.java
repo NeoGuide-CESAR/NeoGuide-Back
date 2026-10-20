@@ -37,7 +37,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -279,7 +280,7 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("Deve salvar etapa residencial com sucesso, excluir registros anteriores, avançar etapa e retornar métricas")
+    @DisplayName("Deve salvar etapa residencial com sucesso, excluir registros anteriores, avançar etapa e retornar resposta consolidada")
     void shouldSaveResidentialStageSuccessfully() {
         Project project = new Project();
         project.setId(100L);
@@ -311,11 +312,6 @@ class ProjectServiceTest {
         assertNotNull(response);
         assertTrue(response.isSucesso());
         assertEquals(100L, response.getProjectId());
-        assertEquals(2, response.getEtapaAtual());
-        assertEquals(100, response.getTotalApartamentos());
-        assertEquals(new BigDecimal("163.50"), response.getDemandaResidencialBrutaDrKva());
-        assertEquals(new BigDecimal("0.6823"), response.getFatorCoincidenciaFc());
-        assertEquals(new BigDecimal("1.10"), response.getFatorSegurancaFr());
         assertEquals(new BigDecimal("122.72"), response.getDemandaResidencialFinalDrfKva());
 
         verify(residentialTypologyRepository).deleteByProjectId(100L);
@@ -348,6 +344,47 @@ class ProjectServiceTest {
     }
 
     @Test
+    @DisplayName("Deve salvar etapa residencial com payload enxuto sem nome e aplicar padrão")
+    void shouldSaveResidentialStageWithoutNomeSuccessfully() {
+        Project project = new Project();
+        project.setId(100L);
+        project.setUser(user);
+        project.setEtapaAtual(1);
+
+        ResidentialTypologyItemRequest item1 = new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 50, false);
+        ResidentialStageRequest request = new ResidentialStageRequest(List.of(item1));
+
+        ResidentialTypologyOutput out1 = new ResidentialTypologyOutput("Tipologia 65.00m²", new BigDecimal("65.00"), 50, new BigDecimal("1.47"), new BigDecimal("73.50"));
+        ResidentialCalculationResult calcResult = new ResidentialCalculationResult(
+                50,
+                new BigDecimal("73.50"),
+                new BigDecimal("0.7080"),
+                new BigDecimal("52.04"),
+                new BigDecimal("1.20"),
+                new BigDecimal("62.45"),
+                false,
+                List.of(out1)
+        );
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(project));
+        when(residentialCalculationEngine.calculate(anyList())).thenReturn(calcResult);
+
+        ResidentialStageResponse response = projectService.saveResidentialStage(100L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(100L, response.getProjectId());
+        assertEquals(new BigDecimal("62.45"), response.getDemandaResidencialFinalDrfKva());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ResidentialTypology>> captor = ArgumentCaptor.forClass(List.class);
+        verify(residentialTypologyRepository).saveAll(captor.capture());
+        List<ResidentialTypology> savedList = captor.getValue();
+        assertEquals(1, savedList.size());
+        assertEquals("Tipologia 65.00m²", savedList.get(0).getNome());
+    }
+
+    @Test
     @DisplayName("Deve preservar etapaAtual superior quando projeto já estiver em etapa mais avançada")
     void shouldPreserveHigherStageWhenUpdatingResidentialStage() {
         Project project = new Project();
@@ -375,7 +412,8 @@ class ProjectServiceTest {
 
         ResidentialStageResponse response = projectService.saveResidentialStage(100L, request, 10L);
 
-        assertEquals(4, response.getEtapaAtual());
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
         assertEquals(4, project.getEtapaAtual());
         verify(projectRepository).save(project);
     }
@@ -446,7 +484,7 @@ class ProjectServiceTest {
         );
         assertTrue(exQuant.getErrors().containsKey("tipologias[0].quantidadeUnidades"));
 
-        // 4. Nome em branco
+        // 4. Nome em branco (quando fornecido explicitamente como whitespace)
         ResidentialStageRequest reqNomeInvalido = new ResidentialStageRequest(List.of(
                 new ResidentialTypologyItemRequest("   ", null, new BigDecimal("50.00"), 10, false)
         ));

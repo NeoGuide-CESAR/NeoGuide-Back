@@ -205,8 +205,11 @@ public class ProjectService {
 
         List<ResidentialTypologyItem> engineItems = new ArrayList<>();
         for (ResidentialTypologyItemRequest item : request.getTipologias()) {
+            String nome = (item.getNome() != null && !item.getNome().isBlank())
+                    ? item.getNome().trim()
+                    : "Tipologia " + item.getAreaUtilM2() + "m²";
             engineItems.add(new ResidentialTypologyItem(
-                    item.getNome() != null ? item.getNome().trim() : "",
+                    nome,
                     item.getAreaUtilM2(),
                     item.getQuantidadeUnidades(),
                     null,
@@ -225,11 +228,14 @@ public class ProjectService {
             ResidentialTypologyOutput out = outputs.get(i);
             BigDecimal demandaUnitaria = out.demandaUnitariaDi();
             BigDecimal demandaTotal = out.demandaSubtotal();
+            String nome = (item.getNome() != null && !item.getNome().isBlank())
+                    ? item.getNome().trim()
+                    : "Tipologia " + item.getAreaUtilM2() + "m²";
 
             ResidentialTypology entity = new ResidentialTypology(
                     project,
                     item.getCatalogoFaixaId(),
-                    item.getNome().trim(),
+                    nome,
                     item.getAreaUtilM2(),
                     item.getQuantidadeUnidades(),
                     item.isSmartStudio(),
@@ -248,11 +254,6 @@ public class ProjectService {
         return new ResidentialStageResponse(
                 true,
                 project.getId(),
-                project.getEtapaAtual(),
-                calcResult.getTotalApartamentos(),
-                calcResult.getDemandaBrutaDr(),
-                calcResult.getFatorCoincidenciaFc(),
-                calcResult.getFatorSegurancaFr(),
                 calcResult.getDemandaFinalDrf()
         );
     }
@@ -269,7 +270,9 @@ public class ProjectService {
                     validator.custom(prefix, false, "Item de tipologia não pode ser nulo");
                     continue;
                 }
-                validator.required(prefix + "nome", item.getNome());
+                if (item.getNome() != null && item.getNome().trim().isEmpty()) {
+                    validator.custom(prefix + "nome", false, "O nome da tipologia não pode ser em branco");
+                }
                 if (item.getAreaUtilM2() == null || item.getAreaUtilM2().compareTo(BigDecimal.ZERO) <= 0) {
                     validator.custom(prefix + "areaUtilM2", false, "A área útil privativa deve ser estritamente maior que zero");
                 }

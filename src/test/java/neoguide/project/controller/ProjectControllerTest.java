@@ -262,7 +262,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com dados válidos deve retornar 200 OK e métricas elétricas")
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com dados válidos deve retornar 200 OK e resposta consolidada enxuta")
     void shouldSaveResidentialStageSuccessfully() throws Exception {
         Project proj = new Project();
         proj.setProtocolo("PRJ-2026-0040");
@@ -286,11 +286,6 @@ class ProjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sucesso", is(true)))
                 .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
-                .andExpect(jsonPath("$.etapaAtual", is(2)))
-                .andExpect(jsonPath("$.totalApartamentos", is(100)))
-                .andExpect(jsonPath("$.demandaResidencialBrutaDrKva", is(163.50)))
-                .andExpect(jsonPath("$.fatorCoincidenciaFc", is(0.6823)))
-                .andExpect(jsonPath("$.fatorSegurancaFr", is(1.10)))
                 .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
 
         List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
@@ -305,6 +300,51 @@ class ProjectControllerTest {
 
         Project updated = projectRepository.findById(saved.getId()).orElseThrow();
         assertEquals(2, updated.getEtapaAtual());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com contrato enxuto sem nome deve salvar e retornar 200 OK")
+    void shouldSaveResidentialStageWithLeanContractWithoutNome() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0045");
+        proj.setTitulo("Edifício Contrato Enxuto");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setEtapaAtual(1);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        String jsonPayload = """
+                {
+                  "tipologias": [
+                    {
+                      "areaUtilM2": 65.00,
+                      "quantidadeUnidades": 50,
+                      "isSmartStudio": false
+                    },
+                    {
+                      "areaUtilM2": 78.00,
+                      "quantidadeUnidades": 50,
+                      "isSmartStudio": false
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+
+        List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
+        assertEquals(2, typologies.size());
+        assertEquals("Tipologia 65.00m²", typologies.get(0).getNome());
+        assertEquals("Tipologia 78.00m²", typologies.get(1).getNome());
     }
 
     @Test
@@ -330,7 +370,8 @@ class ProjectControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(firstRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalApartamentos", is(100)));
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
 
         assertEquals(2, residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId()).size());
 
@@ -344,7 +385,8 @@ class ProjectControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalApartamentos", is(15)));
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", notNullValue()));
 
         List<ResidentialTypology> typologiesAfter = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
         assertEquals(1, typologiesAfter.size());
@@ -464,6 +506,6 @@ class ProjectControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sucesso", is(true)))
-                .andExpect(jsonPath("$.totalApartamentos", is(10)));
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", notNullValue()));
     }
 }

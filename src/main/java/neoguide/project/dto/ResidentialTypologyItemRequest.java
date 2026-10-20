@@ -12,6 +12,12 @@ public class ResidentialTypologyItemRequest {
     public ResidentialTypologyItemRequest() {
     }
 
+    public ResidentialTypologyItemRequest(BigDecimal areaUtilM2, Integer quantidadeUnidades, boolean isSmartStudio) {
+        this.areaUtilM2 = areaUtilM2;
+        this.quantidadeUnidades = quantidadeUnidades;
+        this.isSmartStudio = isSmartStudio;
+    }
+
     public ResidentialTypologyItemRequest(String nome, Long catalogoFaixaId, BigDecimal areaUtilM2,
                                           Integer quantidadeUnidades, boolean isSmartStudio) {
         this.nome = nome;
