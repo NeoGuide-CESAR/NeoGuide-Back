@@ -37,3 +37,4 @@ planner/
 backend-consolidado/
 .worktrees/
 openspec/
+.agent/
