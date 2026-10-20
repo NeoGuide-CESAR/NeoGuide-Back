@@ -275,8 +275,8 @@ class ProjectControllerTest {
         Project saved = projectRepository.save(proj);
 
         ResidentialStageRequest request = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo A (2Q)", 6L, new BigDecimal("65.00"), 50, false),
-                new ResidentialTypologyItemRequest("Tipo B (3Q)", 8L, new BigDecimal("78.00"), 50, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 50, false),
+                new ResidentialTypologyItemRequest(new BigDecimal("78.00"), 50, false)
         ));
 
         mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
@@ -290,11 +290,11 @@ class ProjectControllerTest {
 
         List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
         assertEquals(2, typologies.size());
-        assertEquals("Tipo A (2Q)", typologies.get(0).getNome());
+        assertEquals("Tipologia 65.00m²", typologies.get(0).getNome());
         assertEquals(new BigDecimal("1.47"), typologies.get(0).getDemandaUnitariaKva());
         assertEquals(new BigDecimal("73.50"), typologies.get(0).getDemandaTotalTipologiaKva());
 
-        assertEquals("Tipo B (3Q)", typologies.get(1).getNome());
+        assertEquals("Tipologia 78.00m²", typologies.get(1).getNome());
         assertEquals(new BigDecimal("1.80"), typologies.get(1).getDemandaUnitariaKva());
         assertEquals(new BigDecimal("90.00"), typologies.get(1).getDemandaTotalTipologiaKva());
 
@@ -303,8 +303,8 @@ class ProjectControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com contrato enxuto sem nome deve salvar e retornar 200 OK")
-    void shouldSaveResidentialStageWithLeanContractWithoutNome() throws Exception {
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com JSON puro enxuto deve salvar e retornar 200 OK")
+    void shouldSaveResidentialStageWithLeanJsonPayload() throws Exception {
         Project proj = new Project();
         proj.setProtocolo("PRJ-2026-0045");
         proj.setTitulo("Edifício Contrato Enxuto");
@@ -361,8 +361,8 @@ class ProjectControllerTest {
         Project saved = projectRepository.save(proj);
 
         ResidentialStageRequest firstRequest = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("65.00"), 50, false),
-                new ResidentialTypologyItemRequest("Tipo B", null, new BigDecimal("78.00"), 50, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 50, false),
+                new ResidentialTypologyItemRequest(new BigDecimal("78.00"), 50, false)
         ));
 
         mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
@@ -377,7 +377,7 @@ class ProjectControllerTest {
 
         // Segunda chamada com nova composição (ex: apenas 1 studio)
         ResidentialStageRequest secondRequest = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Studio Compacto", null, new BigDecimal("30.00"), 15, true)
+                new ResidentialTypologyItemRequest(new BigDecimal("30.00"), 15, true)
         ));
 
         mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
@@ -390,7 +390,7 @@ class ProjectControllerTest {
 
         List<ResidentialTypology> typologiesAfter = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
         assertEquals(1, typologiesAfter.size());
-        assertEquals("Studio Compacto", typologiesAfter.get(0).getNome());
+        assertEquals("Tipologia 30.00m²", typologiesAfter.get(0).getNome());
         assertEquals(15, typologiesAfter.get(0).getQuantidadeUnidades());
     }
 
@@ -418,7 +418,7 @@ class ProjectControllerTest {
 
         // Item com área negativa e quantidade zero
         ResidentialStageRequest reqCamposInvalidos = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo Ruim", null, new BigDecimal("-10.00"), 0, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("-10.00"), 0, false)
         ));
         mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
                         .header("Authorization", "Bearer " + tokenDono)
@@ -443,7 +443,7 @@ class ProjectControllerTest {
         Project saved = projectRepository.save(proj);
 
         ResidentialStageRequest request = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("65.00"), 20, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 20, false)
         ));
 
         mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-residencial")
@@ -459,7 +459,7 @@ class ProjectControllerTest {
     @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial sem token deve retornar 401 Unauthorized")
     void shouldReturn401WhenNoTokenProvided() throws Exception {
         ResidentialStageRequest request = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("65.00"), 20, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 20, false)
         ));
 
         mockMvc.perform(put("/api/v1/projects/1/etapa-residencial")
@@ -473,7 +473,7 @@ class ProjectControllerTest {
     @DisplayName("PUT /api/v1/projects/{id}/etapa-residencial com ID inexistente deve retornar 404 Not Found")
     void shouldReturn404WhenProjectDoesNotExist() throws Exception {
         ResidentialStageRequest request = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("65.00"), 20, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 20, false)
         ));
 
         mockMvc.perform(put("/api/v1/projects/99999/etapa-residencial")
@@ -497,7 +497,7 @@ class ProjectControllerTest {
         Project saved = projectRepository.save(proj);
 
         ResidentialStageRequest request = new ResidentialStageRequest(List.of(
-                new ResidentialTypologyItemRequest("Tipo A", null, new BigDecimal("65.00"), 10, false)
+                new ResidentialTypologyItemRequest(new BigDecimal("65.00"), 10, false)
         ));
 
         mockMvc.perform(put("/projects/" + saved.getId() + "/etapa-residencial")

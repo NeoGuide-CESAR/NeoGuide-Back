@@ -49,6 +49,12 @@ public class ResidentialTypology {
     public ResidentialTypology() {
     }
 
+    public ResidentialTypology(Project project, String nome, BigDecimal areaUtilM2,
+                               Integer quantidadeUnidades, boolean isSmartStudio,
+                               BigDecimal demandaUnitariaKva, BigDecimal demandaTotalTipologiaKva) {
+        this(project, null, nome, areaUtilM2, quantidadeUnidades, isSmartStudio, demandaUnitariaKva, demandaTotalTipologiaKva);
+    }
+
     public ResidentialTypology(Project project, Long catalogoFaixaId, String nome, BigDecimal areaUtilM2,
                                Integer quantidadeUnidades, boolean isSmartStudio,
                                BigDecimal demandaUnitariaKva, BigDecimal demandaTotalTipologiaKva) {

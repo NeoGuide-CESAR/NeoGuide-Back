@@ -41,13 +41,14 @@
    - Cada item de `tipologias`:
      - `areaUtilM2`: obrigatório e estritamente positivo ($> 0$).
      - `quantidadeUnidades`: obrigatório e inteiro positivo ($> 0$).
-     - `nome`: opcional; se informado, não pode ser vazio ou apenas espaços em branco.
+     - `isSmartStudio`: booleano (default `false`).
 2. **Autorização e Existência**:
    - `401 Unauthorized`: token ausente ou inválido.
    - `403 Forbidden`: usuário autenticado não é o proprietário do projeto.
    - `404 Not Found`: projeto com o ID especificado não encontrado.
 3. **Idempotência**:
    - Toda invocação substitui integralmente a lista anterior de tipologias do projeto na tabela `residential_typologies`.
+   - O backend gera automaticamente a identificação descritiva (`Tipologia <área>m²`) para persistência.
 4. **Atualização de Progresso**:
    - O campo `etapaAtual` do projeto é atualizado para `Math.max(project.getEtapaAtual(), 2)`.
    - O campo `updatedAt` é preenchido com a data/hora corrente.
