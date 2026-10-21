@@ -7,6 +7,9 @@ public class RegisterRequest {
     private String name;
     private String email;
     private String cpfCnpj;
+    private String telefone;
+    private String empresa;
+    private String crea;
     private UserRole role = UserRole.ROLE_PROJETISTA;
     private String password;
     private String confirmPassword;
@@ -72,6 +75,30 @@ public class RegisterRequest {
 
     public void setCpfCnpj(String cpfCnpj) {
         this.cpfCnpj = cpfCnpj;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public String getEmpresa() {
+        return empresa;
+    }
+
+    public void setEmpresa(String empresa) {
+        this.empresa = empresa;
+    }
+
+    public String getCrea() {
+        return crea;
+    }
+
+    public void setCrea(String crea) {
+        this.crea = crea;
     }
 
     public UserRole getRole() {
