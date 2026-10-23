@@ -82,6 +82,9 @@ public class Project {
     @Column(length = 50)
     private String crea;
 
+    @Column(nullable = false)
+    private boolean ativo = true;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -96,6 +99,7 @@ public class Project {
         this.etapaAtual = 1;
         this.status = ProjectStatus.RASCUNHO;
         this.tipo = ProjectType.LIGACAO_NOVA;
+        this.ativo = true;
     }
 
     public Project(String protocolo, String titulo, String descricao, ProjectType tipo, ProjectStatus status,
@@ -110,6 +114,7 @@ public class Project {
         this.responsavel = responsavel;
         this.municipio = municipio;
         this.dataSubmissao = dataSubmissao;
+        this.ativo = true;
     }
 
     public Long getId() {
@@ -262,6 +267,14 @@ public class Project {
 
     public void setCrea(String crea) {
         this.crea = crea;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -68,4 +68,12 @@ public class CepResponse {
     public void setAtendidoNeoenergia(boolean atendidoNeoenergia) {
         this.atendidoNeoenergia = atendidoNeoenergia;
     }
+
+    public boolean isAreaConcessaoNeoenergia() {
+        return atendidoNeoenergia;
+    }
+
+    public void setAreaConcessaoNeoenergia(boolean areaConcessaoNeoenergia) {
+        this.atendidoNeoenergia = areaConcessaoNeoenergia;
+    }
 }

@@ -17,7 +17,12 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
+    List<Project> findAllByUserIdAndAtivoTrueOrderByCreatedAtDesc(Long userId);
+
+    Optional<Project> findByIdAndAtivoTrue(Long id);
+
     @Query("SELECT p FROM Project p WHERE p.user.id = :userId " +
+           "AND p.ativo = true " +
            "AND (:status IS NULL OR p.status = :status) " +
            "AND (CAST(:termo AS string) IS NULL " +
            "     OR LOWER(p.titulo) LIKE LOWER(CONCAT('%', CAST(:termo AS string), '%')) " +

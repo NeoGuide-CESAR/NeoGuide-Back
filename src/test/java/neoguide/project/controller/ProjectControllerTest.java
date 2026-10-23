@@ -2,6 +2,7 @@ package neoguide.project.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.dto.CreateProjectRequest;
+import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialTypologyItemRequest;
 import neoguide.project.model.Project;
@@ -30,7 +31,9 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -649,6 +652,139 @@ class ProjectControllerTest {
                         .header("Authorization", "Bearer " + tokenDono)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/projects/{id} autenticado deve atualizar dados cadastrais e retornar 200 OK")
+    void shouldPatchProjectSuccessfully() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0090");
+        proj.setTitulo("Condomínio Antigo");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ProjectUpdatePatchRequest patch = new ProjectUpdatePatchRequest();
+        patch.setTitulo("Condomínio Novo Atualizado");
+        patch.setEndereco("Rua das Flores, 100");
+
+        mockMvc.perform(patch("/api/v1/projects/" + saved.getId())
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patch)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.titulo", is("Condomínio Novo Atualizado")))
+                .andExpect(jsonPath("$.endereco", is("Rua das Flores, 100")))
+                .andExpect(jsonPath("$.status", is("EM_ANALISE")));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/projects/{id} alterando flag de carga deve resetar status para RASCUNHO")
+    void shouldResetStatusToRascunhoWhenStructuralFieldPatched() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0091");
+        proj.setTitulo("Projeto com Status Calculado");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setPossuiVe(false);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ProjectUpdatePatchRequest patch = new ProjectUpdatePatchRequest();
+        patch.setPossuiVe(true);
+
+        mockMvc.perform(patch("/api/v1/projects/" + saved.getId())
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patch)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.possuiVe", is(true)))
+                .andExpect(jsonPath("$.status", is("RASCUNHO")));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/projects/{id} por usuário que não é o dono deve retornar 403 Forbidden")
+    void shouldReturn403WhenOtherUserPatchesProject() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0092");
+        proj.setTitulo("Projeto Protegido");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        ProjectUpdatePatchRequest patch = new ProjectUpdatePatchRequest();
+        patch.setTitulo("Invasão");
+
+        mockMvc.perform(patch("/api/v1/projects/" + saved.getId())
+                        .header("Authorization", "Bearer " + tokenOutro)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patch)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/projects/{id} autenticado deve marcar inativo e retornar 204 No Content")
+    void shouldSoftDeleteProjectSuccessfully() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0093");
+        proj.setTitulo("Projeto a ser deletado");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        // Delete
+        mockMvc.perform(delete("/api/v1/projects/" + saved.getId())
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isNoContent());
+
+        // Subsequent GET should return 404
+        mockMvc.perform(get("/api/v1/projects/" + saved.getId())
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)));
+
+        // Listing should not contain the deleted project
+        mockMvc.perform(get("/api/v1/projects")
+                        .header("Authorization", "Bearer " + tokenDono))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.id == " + saved.getId() + ")]").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/projects/{id} por outro usuário deve retornar 403 Forbidden")
+    void shouldReturn403WhenOtherUserDeletesProject() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0094");
+        proj.setTitulo("Projeto Não Deletável Por Terceiro");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        mockMvc.perform(delete("/api/v1/projects/" + saved.getId())
+                        .header("Authorization", "Bearer " + tokenOutro))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/projects/{id} inexistente deve retornar 404 Not Found")
+    void shouldReturn404WhenDeletingNonExistentProject() throws Exception {
+        mockMvc.perform(delete("/api/v1/projects/999999")
+                        .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)));
     }

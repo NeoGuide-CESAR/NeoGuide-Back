@@ -3,6 +3,7 @@ package neoguide.project.controller;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialStageResponse;
 import neoguide.project.exception.UnauthorizedException;
@@ -18,7 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -69,6 +72,24 @@ public class ProjectController {
                                                    Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
         return ResponseEntity.ok(projectService.getProjectById(id, userId));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ProjectResponse> updatePatch(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) ProjectUpdatePatchRequest request,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        return ResponseEntity.ok(projectService.updateProjectPatch(id, request, userId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") Long id,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        projectService.deleteProject(id, userId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/etapa-residencial")

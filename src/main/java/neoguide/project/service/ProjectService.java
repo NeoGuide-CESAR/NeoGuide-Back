@@ -3,6 +3,7 @@ package neoguide.project.service;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialStageResponse;
 import neoguide.project.dto.ResidentialTypologyItemRequest;
@@ -109,6 +110,7 @@ public class ProjectService {
         project.setPossuiIncendio(request.isPossuiIncendio());
         project.setEtapaAtual(1);
         project.setStatus(ProjectStatus.RASCUNHO);
+        project.setAtivo(true);
 
         ProjectType tipo = parseProjectType(request.getTipo());
         project.setTipo(tipo);
@@ -149,6 +151,7 @@ public class ProjectService {
     @Transactional
     public ProjectResponse duplicateProject(Long projectId, Long currentUserId) {
         Project original = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
 
         if (original.getUser() == null || !original.getUser().getId().equals(currentUserId)) {
@@ -174,6 +177,7 @@ public class ProjectService {
         copy.setEndereco(original.getEndereco());
         copy.setBairro(original.getBairro());
         copy.setCrea(original.getCrea());
+        copy.setAtivo(true);
 
         LocalDateTime now = LocalDateTime.now();
         copy.setCreatedAt(now);
@@ -184,14 +188,126 @@ public class ProjectService {
     }
 
     /**
-     * Lista todos os projetos do usuário logado ordenados pela data de criação decrescente (compatibilidade).
+     * Atualiza parcialmente os dados cadastrais da Etapa 1 do projeto (PATCH).
+     * Caso atributos conceituais ou de carga sejam alterados, reseta o status para RASCUNHO.
+     */
+    @Transactional
+    public ProjectResponse updateProjectPatch(Long projectId, ProjectUpdatePatchRequest request, Long currentUserId) {
+        if (request == null) {
+            throw new BusinessException("Corpo da requisição de atualização é obrigatório");
+        }
+
+        Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        boolean structuralChanged = false;
+
+        if (request.getTipo() != null && !request.getTipo().isBlank()) {
+            ProjectType newTipo = parseProjectType(request.getTipo());
+            if (newTipo != project.getTipo()) {
+                project.setTipo(newTipo);
+                structuralChanged = true;
+            }
+        }
+
+        if (request.getTensaoFornecimento() != null && !request.getTensaoFornecimento().isBlank()) {
+            Validator.create().validVoltage("tensaoFornecimento", request.getTensaoFornecimento()).validate();
+            if (!request.getTensaoFornecimento().trim().equals(project.getTensaoFornecimento())) {
+                project.setTensaoFornecimento(request.getTensaoFornecimento().trim());
+                structuralChanged = true;
+            }
+        }
+
+        if (request.getPossuiComercial() != null && request.getPossuiComercial() != project.isPossuiComercial()) {
+            project.setPossuiComercial(request.getPossuiComercial());
+            structuralChanged = true;
+        }
+
+        if (request.getPossuiVe() != null && request.getPossuiVe() != project.isPossuiVe()) {
+            project.setPossuiVe(request.getPossuiVe());
+            structuralChanged = true;
+        }
+
+        if (request.getPossuiIncendio() != null && request.getPossuiIncendio() != project.isPossuiIncendio()) {
+            project.setPossuiIncendio(request.getPossuiIncendio());
+            structuralChanged = true;
+        }
+
+        if (structuralChanged) {
+            project.setStatus(ProjectStatus.RASCUNHO);
+        }
+
+        String titulo = request.getTitulo();
+        if (titulo != null && !titulo.isBlank()) {
+            Validator.create().length("titulo", titulo, 3, 150).validate();
+            project.setTitulo(titulo.trim());
+        }
+
+        if (request.getDescricao() != null) {
+            project.setDescricao(request.getDescricao().trim());
+        }
+        if (request.getNormaTecnica() != null) {
+            project.setNormaTecnica(request.getNormaTecnica().trim());
+        }
+        if (request.getResponsavel() != null) {
+            project.setResponsavel(request.getResponsavel().trim());
+        }
+        if (request.getMunicipio() != null && !request.getMunicipio().isBlank()) {
+            project.setMunicipio(request.getMunicipio().trim());
+        }
+        if (request.getCep() != null) {
+            project.setCep(request.getCep().trim());
+        }
+        String endereco = request.getEndereco();
+        if (endereco != null) {
+            project.setEndereco(endereco.trim());
+        }
+        if (request.getBairro() != null) {
+            project.setBairro(request.getBairro().trim());
+        }
+        if (request.getCrea() != null) {
+            project.setCrea(request.getCrea().trim());
+        }
+
+        project.setUpdatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(project);
+        return ProjectResponse.from(saved);
+    }
+
+    /**
+     * Executa a exclusão lógica do projeto (DELETE / soft delete), marcando ativo = false.
+     */
+    @Transactional
+    public void deleteProject(Long projectId, Long currentUserId) {
+        Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        project.setAtivo(false);
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
+    }
+
+    /**
+     * Lista todos os projetos ativos do usuário logado ordenados pela data de criação decrescente.
      */
     @Transactional(readOnly = true)
     public List<ProjectResponse> listByUser(Long currentUserId) {
         List<Project> projects = projectRepository.findAllByUserIdOrderByCreatedAtDesc(currentUserId);
         List<ProjectResponse> responses = new ArrayList<>();
         for (Project project : projects) {
-            responses.add(ProjectResponse.from(project));
+            if (project.isAtivo()) {
+                responses.add(ProjectResponse.from(project));
+            }
         }
         return responses;
     }
@@ -202,11 +318,12 @@ public class ProjectService {
     }
 
     /**
-     * Consulta detalhes do projeto garantindo que pertence ao usuário logado.
+     * Consulta detalhes do projeto garantindo que pertence ao usuário logado e está ativo.
      */
     @Transactional(readOnly = true)
     public ProjectResponse getProjectById(Long projectId, Long currentUserId) {
         Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
 
         if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
@@ -224,7 +341,9 @@ public class ProjectService {
         List<Project> projects = projectRepository.findAllByOrderByDataSubmissaoDesc();
         List<ProjectResponse> response = new ArrayList<>();
         for (Project project : projects) {
-            response.add(ProjectResponse.from(project));
+            if (project.isAtivo()) {
+                response.add(ProjectResponse.from(project));
+            }
         }
         return response;
     }
@@ -249,6 +368,7 @@ public class ProjectService {
         validateResidentialStageRequest(request);
 
         Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
 
         if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {

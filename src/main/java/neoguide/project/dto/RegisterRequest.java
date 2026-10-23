@@ -48,6 +48,16 @@ public class RegisterRequest {
         this.name = name;
     }
 
+    public String getNome() {
+        return name;
+    }
+
+    public void setNome(String nome) {
+        if (this.name == null || this.name.isBlank()) {
+            this.name = nome;
+        }
+    }
+
     public String getEmail() {
         return email;
     }
@@ -80,11 +90,29 @@ public class RegisterRequest {
         this.password = password;
     }
 
+    public void setSenha(String senha) {
+        if (this.password == null || this.password.isBlank()) {
+            this.password = senha;
+        }
+    }
+
     public String getConfirmPassword() {
         return confirmPassword;
     }
 
     public void setConfirmPassword(String confirmPassword) {
         this.confirmPassword = confirmPassword;
+    }
+
+    public void setConfirmacaoSenha(String confirmacaoSenha) {
+        if (this.confirmPassword == null || this.confirmPassword.isBlank()) {
+            this.confirmPassword = confirmacaoSenha;
+        }
+    }
+
+    public void setConfirmacaoNovaSenha(String confirmacaoNovaSenha) {
+        if (this.confirmPassword == null || this.confirmPassword.isBlank()) {
+            this.confirmPassword = confirmacaoNovaSenha;
+        }
     }
 }

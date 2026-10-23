@@ -29,6 +29,7 @@ public class ProjectResponse {
     private String endereco;
     private String bairro;
     private String crea;
+    private boolean ativo = true;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -63,6 +64,7 @@ public class ProjectResponse {
         response.setEndereco(project.getEndereco());
         response.setBairro(project.getBairro());
         response.setCrea(project.getCrea());
+        response.setAtivo(project.isAtivo());
         response.setCreatedAt(project.getCreatedAt());
         response.setUpdatedAt(project.getUpdatedAt());
 
@@ -91,6 +93,16 @@ public class ProjectResponse {
 
     public void setTitulo(String titulo) {
         this.titulo = titulo;
+    }
+
+    public String getNome() {
+        return titulo;
+    }
+
+    public void setNome(String nome) {
+        if (this.titulo == null || this.titulo.isBlank()) {
+            this.titulo = nome;
+        }
     }
 
     public String getDescricao() {
@@ -235,6 +247,14 @@ public class ProjectResponse {
 
     public void setCrea(String crea) {
         this.crea = crea;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 
     public LocalDateTime getCreatedAt() {

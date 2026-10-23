@@ -3,6 +3,7 @@ package neoguide.project.service;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialStageResponse;
 import neoguide.project.dto.ResidentialTypologyItemRequest;
@@ -580,5 +581,130 @@ class ProjectServiceTest {
                 projectService.saveResidentialStage(100L, reqQuantInvalida, 10L)
         );
         assertTrue(exQuant.getErrors().containsKey("tipologias[0].quantidadeUnidades"));
+    }
+
+    @Test
+    @DisplayName("updateProjectPatch deve atualizar dados cadastrais mantendo o status")
+    void updateProjectPatch_dadosCadastrais_sucesso() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setTitulo("Titulo Antigo");
+        proj.setMunicipio("Recife");
+        proj.setTensaoFornecimento("380_220V");
+        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setAtivo(true);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProjectUpdatePatchRequest request = new ProjectUpdatePatchRequest();
+        request.setTitulo("Titulo Novo Atualizado");
+        request.setEndereco("Rua Nova, 123");
+
+        ProjectResponse response = projectService.updateProjectPatch(100L, request, 10L);
+
+        assertEquals("Titulo Novo Atualizado", response.getTitulo());
+        assertEquals("Rua Nova, 123", response.getEndereco());
+        assertEquals(ProjectStatus.EM_ANALISE.name(), response.getStatus());
+        verify(projectRepository).save(proj);
+    }
+
+    @Test
+    @DisplayName("updateProjectPatch com alteração de carga deve invalidar status para RASCUNHO")
+    void updateProjectPatch_invalidaStatus_quandoCargaAlterada() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setTitulo("Projeto Inicial");
+        proj.setMunicipio("Recife");
+        proj.setTensaoFornecimento("380_220V");
+        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setPossuiVe(false);
+        proj.setAtivo(true);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProjectUpdatePatchRequest request = new ProjectUpdatePatchRequest();
+        request.setPossuiVe(true);
+
+        ProjectResponse response = projectService.updateProjectPatch(100L, request, 10L);
+
+        assertTrue(response.isPossuiVe());
+        assertEquals(ProjectStatus.RASCUNHO.name(), response.getStatus());
+        verify(projectRepository).save(proj);
+    }
+
+    @Test
+    @DisplayName("updateProjectPatch por outro projetista deve lançar ForbiddenException")
+    void updateProjectPatch_outroUsuario_lancaForbidden() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(true);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        ProjectUpdatePatchRequest request = new ProjectUpdatePatchRequest();
+        request.setTitulo("Tentativa Invasiva");
+
+        assertThrows(ForbiddenException.class, () -> projectService.updateProjectPatch(100L, request, 999L));
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("updateProjectPatch com projeto inativo deve lançar ResourceNotFoundException")
+    void updateProjectPatch_projetoInativo_lancaNotFound() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(false);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        ProjectUpdatePatchRequest request = new ProjectUpdatePatchRequest();
+        request.setTitulo("Projeto Inativo");
+
+        assertThrows(ResourceNotFoundException.class, () -> projectService.updateProjectPatch(100L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("deleteProject deve marcar ativo = false")
+    void deleteProject_sucesso() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(true);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        projectService.deleteProject(100L, 10L);
+
+        assertFalse(proj.isAtivo());
+        verify(projectRepository).save(proj);
+    }
+
+    @Test
+    @DisplayName("deleteProject por outro usuário deve lançar ForbiddenException")
+    void deleteProject_outroUsuario_lancaForbidden() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(true);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        assertThrows(ForbiddenException.class, () -> projectService.deleteProject(100L, 999L));
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("deleteProject com projeto inexistente deve lançar ResourceNotFoundException")
+    void deleteProject_inexistente_lancaNotFound() {
+        when(projectRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> projectService.deleteProject(999L, 10L));
     }
 }
