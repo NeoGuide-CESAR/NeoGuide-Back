@@ -1,6 +1,8 @@
 package neoguide.project.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import neoguide.project.dto.CommonAreaLoadItemRequest;
+import neoguide.project.dto.CommonAreaStageRequest;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
@@ -10,6 +12,7 @@ import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.ProjectType;
 import neoguide.project.model.ResidentialTypology;
 import neoguide.project.model.User;
+import neoguide.project.repository.CommonAreaLoadRepository;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
@@ -58,6 +61,9 @@ class ProjectControllerTest {
     private ResidentialTypologyRepository residentialTypologyRepository;
 
     @Autowired
+    private CommonAreaLoadRepository commonAreaLoadRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -70,6 +76,7 @@ class ProjectControllerTest {
 
     @BeforeEach
     void setUp() {
+        commonAreaLoadRepository.deleteAll();
         residentialTypologyRepository.deleteAll();
         projectRepository.deleteAll();
         userRepository.deleteAll();
@@ -787,6 +794,160 @@ class ProjectControllerTest {
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-area-comum com payload híbrido deve retornar 200 OK e consolidar Ds")
+    void shouldSaveCommonAreaStageSuccessfully_WithHybridPayload() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0045");
+        proj.setTitulo("Edifício Áreas Comuns Híbrido");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setEtapaAtual(2);
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        CommonAreaLoadItemRequest motor = new CommonAreaLoadItemRequest(
+                "CATALOGO", "MOTORES", 1L, null, null,
+                "Bomba de Recalque", "Bomba 5cv", 1,
+                new BigDecimal("3.68"), new BigDecimal("0.85"), new BigDecimal("1.00"), true
+        );
+        CommonAreaLoadItemRequest cooktop = new CommonAreaLoadItemRequest(
+                "CATALOGO", "COCCAO", null, null, 2L,
+                "Cooktop de Indução", "Cooktop 4 bocas", 2,
+                new BigDecimal("7.00"), new BigDecimal("1.00"), new BigDecimal("0.60"), false
+        );
+        CommonAreaLoadItemRequest exaustor = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "CLIMATIZACAO", null, null, null,
+                "Exaustor Especial", "Exaustor customizado", 1,
+                new BigDecimal("2.50"), new BigDecimal("0.85"), new BigDecimal("0.80"), false
+        );
+
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(motor, cooktop, exaustor));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-area-comum")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
+                .andExpect(jsonPath("$.etapaAtual", greaterThanOrEqualTo(3)))
+                .andExpect(jsonPath("$.totalCargas", is(3)))
+                .andExpect(jsonPath("$.demandaServicosDsKva", notNullValue()));
+
+        assertEquals(3, commonAreaLoadRepository.findByProjectId(saved.getId()).size());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-area-comum sem autenticação deve retornar 401 Unauthorized")
+    void shouldFailCommonAreaStage_WhenUnauthenticated() throws Exception {
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of());
+
+        mockMvc.perform(put("/api/v1/projects/1/etapa-area-comum")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-area-comum para projeto de outro usuário deve retornar 403 Forbidden")
+    void shouldFailCommonAreaStage_WhenForbiddenForOtherUser() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0046");
+        proj.setTitulo("Projeto Outro Usuário");
+        proj.setUser(outroUsuario);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("1.0"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-area-comum")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-area-comum com carga inválida deve retornar 400 Bad Request")
+    void shouldFailCommonAreaStage_WhenValidationFails() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0047");
+        proj.setTitulo("Projeto Carga Inválida");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("-5.0"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        mockMvc.perform(put("/api/v1/projects/" + saved.getId() + "/etapa-area-comum")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/projects/{id}/etapa-area-comum com projeto inexistente deve retornar 404 Not Found")
+    void shouldFailCommonAreaStage_WhenProjectNotFound() throws Exception {
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("1.0"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        mockMvc.perform(put("/api/v1/projects/99999/etapa-area-comum")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PUT /projects/{id}/etapa-area-comum rota legada deve funcionar com 200 OK")
+    void shouldSupportLegacyCommonAreaStageEndpoint() throws Exception {
+        Project proj = new Project();
+        proj.setProtocolo("PRJ-2026-0048");
+        proj.setTitulo("Projeto Rota Legada Etapa 3");
+        proj.setUser(dono);
+        proj.setTensaoFornecimento("380_220V");
+        proj.setMunicipio("Recife");
+        proj.setCreatedAt(LocalDateTime.now());
+        Project saved = projectRepository.save(proj);
+
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("2.0"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        mockMvc.perform(put("/projects/" + saved.getId() + "/etapa-area-comum")
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sucesso", is(true)))
+                .andExpect(jsonPath("$.etapaAtual", greaterThanOrEqualTo(3)))
+                .andExpect(jsonPath("$.demandaServicosDsKva", notNullValue()));
     }
 
     @Test

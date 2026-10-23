@@ -1,5 +1,8 @@
 package neoguide.project.service;
 
+import neoguide.project.dto.CommonAreaLoadItemRequest;
+import neoguide.project.dto.CommonAreaStageRequest;
+import neoguide.project.dto.CommonAreaStageResponse;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
@@ -7,7 +10,12 @@ import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialStageResponse;
 import neoguide.project.dto.ResidentialTypologyItemRequest;
+import neoguide.project.engine.CommonAreaCalculationEngine;
 import neoguide.project.engine.ResidentialCalculationEngine;
+import neoguide.project.engine.model.commonarea.CommonAreaCalculationResult;
+import neoguide.project.engine.model.commonarea.CommonAreaSubtotal;
+import neoguide.project.model.CommonAreaLoad;
+import neoguide.project.repository.CommonAreaLoadRepository;
 import neoguide.project.engine.model.ResidentialCalculationResult;
 import neoguide.project.engine.model.ResidentialTypologyOutput;
 import neoguide.project.exception.ForbiddenException;
@@ -61,6 +69,12 @@ class ProjectServiceTest {
 
     @Mock
     private ResidentialCalculationEngine residentialCalculationEngine;
+
+    @Mock
+    private CommonAreaLoadRepository commonAreaLoadRepository;
+
+    @Mock
+    private CommonAreaCalculationEngine commonAreaCalculationEngine;
 
     @InjectMocks
     private ProjectService projectService;
@@ -698,6 +712,158 @@ class ProjectServiceTest {
 
         assertThrows(ForbiddenException.class, () -> projectService.deleteProject(100L, 999L));
         verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Deve salvar etapa de áreas comuns com sucesso para payload híbrido")
+    void deveSalvarEtapaAreaComumComSucesso_PayloadHibrido() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(true);
+        proj.setEtapaAtual(1);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        CommonAreaLoadItemRequest motor = new CommonAreaLoadItemRequest(
+                "CATALOGO", "MOTORES", 1L, null, null,
+                "Bomba de Recalque", "Bomba 5cv", 1,
+                new BigDecimal("3.68"), new BigDecimal("0.85"), new BigDecimal("1.00"), true
+        );
+        CommonAreaLoadItemRequest cooktop = new CommonAreaLoadItemRequest(
+                "CATALOGO", "COCCAO", null, null, 2L,
+                "Cooktop de Indução", "Cooktop 4 bocas", 2,
+                new BigDecimal("7.00"), new BigDecimal("1.00"), new BigDecimal("0.60"), false
+        );
+        CommonAreaLoadItemRequest exaustor = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "CLIMATIZACAO", null, null, null,
+                "Exaustor Especial", "Exaustor customizado", 1,
+                new BigDecimal("2.50"), new BigDecimal("0.85"), new BigDecimal("0.80"), false
+        );
+
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(motor, cooktop, exaustor));
+
+        CommonAreaSubtotal mockSub = new CommonAreaSubtotal(
+                new BigDecimal("10.50"), BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE, "Memória"
+        );
+        CommonAreaCalculationResult calcResult = new CommonAreaCalculationResult(
+                new BigDecimal("10.50"),
+                mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub,
+                List.of(BigDecimal.ZERO, new BigDecimal("8.40"), new BigDecimal("2.35"))
+        );
+        when(commonAreaCalculationEngine.calculate(anyList())).thenReturn(calcResult);
+
+        CommonAreaStageResponse response = projectService.saveCommonAreaStage(100L, request, 10L);
+
+        assertTrue(response.isSucesso());
+        assertEquals(100L, response.getProjectId());
+        assertEquals(3, response.getEtapaAtual());
+        assertEquals(3, response.getTotalCargas());
+        assertEquals(new BigDecimal("10.50"), response.getDemandaServicosDsKva());
+
+        verify(commonAreaLoadRepository).deleteByProjectId(100L);
+        verify(commonAreaLoadRepository).flush();
+        verify(commonAreaLoadRepository).saveAll(anyList());
+        verify(projectRepository).save(proj);
+    }
+
+    @Test
+    @DisplayName("Deve garantir idempotência ao salvar duas vezes consecutivas")
+    void deveGarantirIdempotenciaAoSalvarDuasVezes() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(true);
+        proj.setEtapaAtual(2);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Motor teste", 1,
+                new BigDecimal("1.50"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        CommonAreaSubtotal mockSub = new CommonAreaSubtotal(
+                new BigDecimal("1.76"), BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE, "Memória"
+        );
+        CommonAreaCalculationResult calcResult = new CommonAreaCalculationResult(
+                new BigDecimal("1.76"),
+                mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub, mockSub,
+                List.of(new BigDecimal("1.76"))
+        );
+        when(commonAreaCalculationEngine.calculate(anyList())).thenReturn(calcResult);
+
+        projectService.saveCommonAreaStage(100L, request, 10L);
+        projectService.saveCommonAreaStage(100L, request, 10L);
+
+        verify(commonAreaLoadRepository, times(2)).deleteByProjectId(100L);
+        verify(commonAreaLoadRepository, times(2)).flush();
+        verify(commonAreaLoadRepository, times(2)).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("Deve lançar ValidationException quando item personalizado tiver potência inválida")
+    void deveLancarValidationExceptionQuandoItemPersonalizadoComPotenciaInvalida() {
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                BigDecimal.ZERO, new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        assertThrows(ValidationException.class, () -> projectService.saveCommonAreaStage(100L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("Deve lançar ValidationException quando fator de potência estiver fora dos limites")
+    void deveLancarValidationExceptionQuandoFatorPotenciaForaDosLimites() {
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("5.0"), new BigDecimal("1.50"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        assertThrows(ValidationException.class, () -> projectService.saveCommonAreaStage(100L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("Deve lançar ForbiddenException quando projeto pertencer a outro usuário")
+    void deveLancarForbiddenExceptionQuandoProjetoNaoPertenceAoUsuario() {
+        Project proj = new Project();
+        proj.setId(100L);
+        User outro = new User("Outro", "outro@teste.com", "123");
+        outro.setId(99L);
+        proj.setUser(outro);
+        proj.setAtivo(true);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("1.0"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        assertThrows(ForbiddenException.class, () -> projectService.saveCommonAreaStage(100L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("Deve lançar ResourceNotFoundException quando projeto não existir")
+    void deveLancarResourceNotFoundExceptionQuandoProjetoNaoExiste() {
+        when(projectRepository.findById(999L)).thenReturn(Optional.empty());
+
+        CommonAreaLoadItemRequest item = new CommonAreaLoadItemRequest(
+                "PERSONALIZADO", "MOTORES", null, null, null,
+                "Motor", "Desc", 1,
+                new BigDecimal("1.0"), new BigDecimal("0.85"), new BigDecimal("1.00"), false
+        );
+        CommonAreaStageRequest request = new CommonAreaStageRequest(List.of(item));
+
+        assertThrows(ResourceNotFoundException.class, () -> projectService.saveCommonAreaStage(999L, request, 10L));
     }
 
     @Test

@@ -1,5 +1,7 @@
 package neoguide.project.controller;
 
+import neoguide.project.dto.CommonAreaStageRequest;
+import neoguide.project.dto.CommonAreaStageResponse;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
@@ -99,6 +101,16 @@ public class ProjectController {
             Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
         ResidentialStageResponse response = projectService.saveResidentialStage(id, request, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping({"/{id}/etapa-area-comum", "/api/v1/projects/{id}/etapa-area-comum", "/projects/{id}/etapa-area-comum"})
+    public ResponseEntity<CommonAreaStageResponse> saveCommonAreaStage(
+            @PathVariable("id") Long id,
+            @RequestBody CommonAreaStageRequest request,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        CommonAreaStageResponse response = projectService.saveCommonAreaStage(id, request, userId);
         return ResponseEntity.ok(response);
     }
 
