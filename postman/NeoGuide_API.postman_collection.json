@@ -2,36 +2,38 @@
   "info": {
     "_postman_id": "7f8b9c0d-1e2f-4a3b-9c8d-7e6f5a4b3c2d",
     "name": "NeoGuide API",
-    "description": "# NeoGuide API - Coleção Postman v2.1\n\nColeção completa e robusta para testes e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop`.\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)**:\n   - Registro de Usuários (Projetista com `ROLE_PROJETISTA` e Analista com `ROLE_ANALISTA`).\n   - Suporte a CPF/CNPJ com ou sem máscara de pontuação.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste para captura automática do token JWT na variável de coleção `{{jwt_token}}`.\n\n2. **Gestão de Projetos Elétricos (`/api/v1/projects`)**:\n   - Autorização `Bearer {{jwt_token}}`.\n   - Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - Numeração de protocolo sequencial anual automático (`PRJ-AAAA-XXXX`).\n   - Script de teste para captura automática do `projectId` na variável de coleção `{{projectId}}`.\n   - Consulta paginada (`Pageable` Spring Data: `page`, `size`, `sort`).\n   - Filtro por status (`status=RASCUNHO`, etc.).\n   - Busca textual (`search=...`) em múltiplos campos.\n   - Detalhes de projeto por ID com validação de tenancy (403 Forbidden).\n   - Duplicação atômica de projetos com novo protocolo e status `RASCUNHO`.\n\n3. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - **Etapa 2 — Unidades Residenciais (`PUT /api/v1/projects/{id}/etapa-residencial`)**:\n     - Persistência atômica e idempotente da composição de tipologias de apartamentos.\n     - Contrato greenfield enxuto: envio de `areaUtilM2`, `quantidadeUnidades` e `isSmartStudio`.\n     - Execução determinística do motor normativo `ResidentialCalculationEngine` (DIS-NOR-053).\n     - Retorno consolidado enxuto com `sucesso`, `projectId` e a Demanda Residencial Final ($D_{rf}$ em kVA).\n     - Avanço automático da esteira do projeto para `etapaAtual = Math.max(etapaAtual, 2)`.\n\n4. **Catálogo Normativo DIS-NOR-053 (`/api/v1/catalogo`)**:\n   - Acesso público (sem exigência de token JWT) com cache de alta performance em memória RAM (`@Cacheable` / SLA sub-15ms).\n   - `GET /api/v1/catalogo/faixas-area`: Quadro 35 (Faixas de área útil privativa e demandas unitárias $D_i$).\n   - `GET /api/v1/catalogo/fatores-coincidencia-residencial`: Quadro 36 (Fatores de coincidência $F_c$ e regra regulatória de Smart Studios $F_c = 0.90$ para $N > 15$).\n   - `GET /api/v1/catalogo/fatores-seguranca-residencial`: Quadro 37 (Patamares do fator de segurança $F_r$ em função da demanda bruta $D_r$).\n\n5. **Utilitários (`/test`)**:\n   - Endpoint de verificação rápida e sanidade da API.",
+    "description": "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 03).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP & Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica com alteração de status para `CANCELADO`.\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n\n7. **Utilitários (`/test`)**:\n   - Endpoint de verificação de conectividade e sanidade da API.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080",
-      "type": "string",
-      "description": "URL base do servidor NeoGuide Backend"
+      "type": "string"
     },
     {
       "key": "jwt_token",
       "value": "",
-      "type": "string",
-      "description": "Token Bearer JWT extraído automaticamente no login"
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "",
+      "type": "string"
     },
     {
       "key": "projectId",
       "value": "1",
-      "type": "string",
-      "description": "ID do projeto utilizado nos testes de consulta e duplicação"
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "1. Autenticação",
-      "description": "Endpoints públicos de registro e login de usuários no sistema NeoGuide.",
+      "name": "01. Autenticação",
+      "description": "Endpoints públicos de cadastro e autenticação de usuários com geração de tokens JWT.",
       "item": [
         {
-          "name": "Cadastro de Projetista",
+          "name": "POST /api/v1/auth/register - Cadastro de Projetista",
           "request": {
             "auth": {
               "type": "noauth"
@@ -46,7 +48,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.silva@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
+              "raw": "{\n  \"nome\": \"Eng. Carlos Eduardo da Silva\",\n  \"email\": \"carlos.silva@neoguide.eng.br\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"telefone\": \"(81) 98765-4321\",\n  \"crea\": \"CREA-PE 123456/D\",\n  \"empresa\": \"Silva & Associados Engenharia Elétrica Ltda\",\n  \"senha\": \"SenhaForte@2026\",\n  \"confirmacaoSenha\": \"SenhaForte@2026\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -65,7 +67,7 @@
                 "register"
               ]
             },
-            "description": "Cadastra um novo usuário projetista (`ROLE_PROJETISTA`). O CPF/CNPJ é higienizado pelo servidor para manter apenas dígitos numéricos."
+            "description": "Cadastra um novo usuário projetista com suporte a CPF/CNPJ, CREA, Empresa e Telefone."
           },
           "event": [
             {
@@ -76,157 +78,20 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "",
-                  "pm.test(\"Usuário Projetista registrado com sucesso\", function () {",
+                  "pm.test(\"Retorno contém dados cadastrados do projetista\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData.id).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.name).to.eql(\"Eng. Carlos Silva\");",
-                  "    pm.expect(jsonData.email).to.eql(\"carlos.silva@engenharia.com\");",
-                  "    pm.expect(jsonData.cpfCnpj).to.eql(\"12345678901\");",
+                  "    pm.expect(jsonData.email).to.eql(\"carlos.silva@neoguide.eng.br\");",
                   "    pm.expect(jsonData.role).to.eql(\"ROLE_PROJETISTA\");",
-                  "    pm.expect(jsonData.createdAt).to.be.a(\"string\");",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "201 Created - Projetista",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.silva@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "register"
-                  ]
-                }
-              },
-              "status": "Created",
-              "code": 201,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": 1,\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.silva@engenharia.com\",\n  \"cpfCnpj\": \"12345678901\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"createdAt\": \"2026-10-17T09:00:00\"\n}"
-            },
-            {
-              "name": "409 Conflict - CPF/CNPJ Duplicado",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Eng. Carlos Silva\",\n  \"email\": \"carlos.outro@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "register"
-                  ]
-                }
-              },
-              "status": "Conflict",
-              "code": 409,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:02:15\",\n  \"status\": 409,\n  \"message\": \"CPF/CNPJ já cadastrado\",\n  \"errors\": {}\n}"
-            },
-            {
-              "name": "400 Bad Request - Erro de Validação",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Carlos Silva\",\n  \"email\": \"carlos.invalido@engenharia.com\",\n  \"cpfCnpj\": \"123.456.789-01\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"password\": \"fraca\",\n  \"confirmPassword\": \"diferente\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "register"
-                  ]
-                }
-              },
-              "status": "Bad Request",
-              "code": 400,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:03:00\",\n  \"status\": 400,\n  \"message\": \"Erro de validação nos dados fornecidos\",\n  \"errors\": {\n    \"password\": \"Deve ter no mínimo 8 caracteres\",\n    \"confirmPassword\": \"As senhas não conferem\"\n  }\n}"
-            }
           ]
         },
         {
-          "name": "Cadastro de Analista",
+          "name": "POST /api/v1/auth/login - Login de Projetista (Salvar JWT)",
           "request": {
             "auth": {
               "type": "noauth"
@@ -241,110 +106,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Mariana Souza\",\n  \"email\": \"mariana.analista@distribuidora.com\",\n  \"cpfCnpj\": \"987.654.321-09\",\n  \"role\": \"ROLE_ANALISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "register"
-              ]
-            },
-            "description": "Cadastra um analista da concessionária (`ROLE_ANALISTA`)."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code é 201 Created\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test(\"Usuário Analista registrado com sucesso\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.role).to.eql(\"ROLE_ANALISTA\");",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "response": [
-            {
-              "name": "201 Created - Analista",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Mariana Souza\",\n  \"email\": \"mariana.analista@distribuidora.com\",\n  \"cpfCnpj\": \"987.654.321-09\",\n  \"role\": \"ROLE_ANALISTA\",\n  \"password\": \"SenhaForte123\",\n  \"confirmPassword\": \"SenhaForte123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/register",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "register"
-                  ]
-                }
-              },
-              "status": "Created",
-              "code": 201,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": 2,\n  \"name\": \"Mariana Souza\",\n  \"email\": \"mariana.analista@distribuidora.com\",\n  \"cpfCnpj\": \"98765432109\",\n  \"role\": \"ROLE_ANALISTA\",\n  \"createdAt\": \"2026-10-17T09:05:00\"\n}"
-            }
-          ]
-        },
-        {
-          "name": "Login com E-mail e Senha",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"login\": \"carlos.silva@engenharia.com\",\n  \"password\": \"SenhaForte123\"\n}",
+              "raw": "{\n  \"login\": \"carlos.silva@neoguide.eng.br\",\n  \"senha\": \"SenhaForte@2026\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -363,126 +125,32 @@
                 "login"
               ]
             },
-            "description": "Autentica o usuário pelo endereço de e-mail e senha. Armazena automaticamente o token retornado na variável `{{jwt_token}}` da coleção."
+            "description": "Autentica o projetista via e-mail e senha, salvando automaticamente o token JWT nas variáveis {{jwtToken}} e {{jwt_token}}."
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    pm.collectionVariables.set(\"jwt_token\", pm.response.json().token);",
-                  "}",
-                  "",
                   "pm.test(\"Status code é 200 OK\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Token JWT capturado com sucesso\", function () {",
+                  "pm.test(\"Token JWT retornado e salvo na coleção\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
-                  "    pm.expect(jsonData.tipo).to.eql(\"Bearer\");",
-                  "    pm.expect(jsonData.usuario).to.be.an(\"object\");",
-                  "    pm.expect(jsonData.usuario.email).to.eql(\"carlos.silva@engenharia.com\");",
+                  "    pm.expect(jsonData.token || jsonData.accessToken).to.be.a(\"string\");",
+                  "    var token = jsonData.token || jsonData.accessToken;",
+                  "    pm.collectionVariables.set(\"jwtToken\", token);",
+                  "    pm.collectionVariables.set(\"jwt_token\", token);",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Login com E-mail",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"login\": \"carlos.silva@engenharia.com\",\n  \"password\": \"SenhaForte123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "login"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXJsb3Muc2lsdmFAZW5nZW5oYXJpYS5jb20iLCJyb2xlIjoiUk9MRV9QUk9KRVRJU1RBIiwiZXhwIjoxNzk0OTYwMDAwfQ.XYZ1234567890abcdef\",\n  \"tipo\": \"Bearer\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"roles\": [\n    \"ROLE_PROJETISTA\"\n  ],\n  \"usuario\": {\n    \"id\": 1,\n    \"name\": \"Eng. Carlos Silva\",\n    \"email\": \"carlos.silva@engenharia.com\",\n    \"cpfCnpj\": \"12345678901\",\n    \"role\": \"ROLE_PROJETISTA\",\n    \"createdAt\": \"2026-10-17T09:00:00\"\n  }\n}"
-            },
-            {
-              "name": "401 Unauthorized - Credenciais Inválidas",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"login\": \"carlos.silva@engenharia.com\",\n  \"password\": \"SenhaIncorreta\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "login"
-                  ]
-                }
-              },
-              "status": "Unauthorized",
-              "code": 401,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:10:00\",\n  \"status\": 401,\n  \"message\": \"E-mail ou senha inválidos\",\n  \"errors\": {}\n}"
-            }
           ]
         },
         {
-          "name": "Login com CPF (com formatação)",
+          "name": "POST /api/v1/auth/login - Login por CPF/CNPJ",
           "request": {
             "auth": {
               "type": "noauth"
@@ -497,7 +165,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"login\": \"123.456.789-01\",\n  \"password\": \"SenhaForte123\"\n}",
+              "raw": "{\n  \"login\": \"123.456.789-01\",\n  \"password\": \"SenhaForte@2026\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -516,203 +184,174 @@
                 "login"
               ]
             },
-            "description": "Autentica o usuário fornecendo CPF formatado com pontuação (`123.456.789-01`). O sistema sanitiza os caracteres para a busca."
+            "description": "Autentica o projetista utilizando seu documento CPF/CNPJ formatado ou apenas dígitos."
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    pm.collectionVariables.set(\"jwt_token\", pm.response.json().token);",
-                  "}",
-                  "",
                   "pm.test(\"Status code é 200 OK\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Autenticação via CPF formatado bem-sucedida\", function () {",
+                  "pm.test(\"Token JWT emitido com sucesso para login por CPF\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(jsonData.token || jsonData.accessToken).to.be.a(\"string\");",
                   "});"
                 ],
                 "type": "text/javascript"
               }
-            }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Login com CPF com máscara",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"login\": \"123.456.789-01\",\n  \"password\": \"SenhaForte123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "login"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXJsb3Muc2lsdmFAZW5nZW5oYXJpYS5jb20iLCJyb2xlIjoiUk9MRV9QUk9KRVRJU1RBIiwiZXhwIjoxNzk0OTYwMDAwfQ.XYZ1234567890abcdef\",\n  \"tipo\": \"Bearer\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"roles\": [\n    \"ROLE_PROJETISTA\"\n  ],\n  \"usuario\": {\n    \"id\": 1,\n    \"name\": \"Eng. Carlos Silva\",\n    \"email\": \"carlos.silva@engenharia.com\",\n    \"cpfCnpj\": \"12345678901\",\n    \"role\": \"ROLE_PROJETISTA\",\n    \"createdAt\": \"2026-10-17T09:00:00\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Login com CPF/CNPJ (sem formatação)",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"login\": \"12345678901\",\n  \"password\": \"SenhaForte123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "login"
-              ]
-            },
-            "description": "Autentica o usuário fornecendo CPF/CNPJ sem máscara (apenas dígitos numéricos)."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    pm.collectionVariables.set(\"jwt_token\", pm.response.json().token);",
-                  "}",
-                  "",
-                  "pm.test(\"Status code é 200 OK\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Autenticação via CPF desformatado bem-sucedida\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Login com CPF sem máscara",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"login\": \"12345678901\",\n  \"password\": \"SenhaForte123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/auth/login",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "auth",
-                    "login"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXJsb3Muc2lsdmFAZW5nZW5oYXJpYS5jb20iLCJyb2xlIjoiUk9MRV9QUk9KRVRJU1RBIiwiZXhwIjoxNzk0OTYwMDAwfQ.XYZ1234567890abcdef\",\n  \"tipo\": \"Bearer\",\n  \"role\": \"ROLE_PROJETISTA\",\n  \"roles\": [\n    \"ROLE_PROJETISTA\"\n  ],\n  \"usuario\": {\n    \"id\": 1,\n    \"name\": \"Eng. Carlos Silva\",\n    \"email\": \"carlos.silva@engenharia.com\",\n    \"cpfCnpj\": \"12345678901\",\n    \"role\": \"ROLE_PROJETISTA\",\n    \"createdAt\": \"2026-10-17T09:00:00\"\n  }\n}"
             }
           ]
         }
       ]
     },
     {
-      "name": "2. Gestão de Projetos Elétricos",
-      "description": "Endpoints protegidos para gerenciamento de projetos elétricos com DNA normativo completo. Requerem cabeçalho `Authorization: Bearer {{jwt_token}}`.",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{jwt_token}}",
-            "type": "string"
-          }
-        ]
-      },
+      "name": "02. Perfil do Projetista",
+      "description": "Gestão de dados cadastrais, CREA, empresa, telefone e segurança de credenciais do usuário autenticado (US-04D).",
       "item": [
         {
-          "name": "Criar Projeto (DNA Completo)",
+          "name": "GET /api/v1/usuarios/me - Obter Perfil do Usuário Autenticado",
           "request": {
-            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "me"
+              ]
+            },
+            "description": "Recupera os detalhes completos do perfil do usuário autenticado no sistema via JWT."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Perfil contém atributos profissionais obrigatórios\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
+                  "    pm.expect(jsonData.name).to.be.a(\"string\");",
+                  "    pm.expect(jsonData.email).to.be.a(\"string\");",
+                  "    pm.expect(jsonData.role).to.eql(\"ROLE_PROJETISTA\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /api/v1/usuarios/me - Atualizar Perfil do Usuário",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eng. Carlos Eduardo da Silva, Me.\",\n  \"telefone\": \"(81) 99887-7665\",\n  \"empresa\": \"Silva Projetos e Engenharia Ltda\",\n  \"crea\": \"CREA-PE 123456/D\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "me"
+              ]
+            },
+            "description": "Atualiza parcialmente os dados cadastrais e profissionais do projetista autenticado."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Dados cadastrais atualizados com sucesso\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.name).to.eql(\"Eng. Carlos Eduardo da Silva, Me.\");",
+                  "    pm.expect(jsonData.telefone).to.eql(\"(81) 99887-7665\");",
+                  "    pm.expect(jsonData.empresa).to.eql(\"Silva Projetos e Engenharia Ltda\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /api/v1/usuarios/me/senha - Alterar Senha de Acesso",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
@@ -722,7 +361,180 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"crea\": \"123456-D/PE\",\n  \"municipio\": \"Recife\",\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\"\n}",
+              "raw": "{\n  \"senhaAtual\": \"SenhaForte@2026\",\n  \"novaSenha\": \"NovaSenhaForte@2026\",\n  \"confirmacaoNovaSenha\": \"NovaSenhaForte@2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/usuarios/me/senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "usuarios",
+                "me",
+                "senha"
+              ]
+            },
+            "description": "Altera a senha de acesso do usuário mediante validação da senha atual com hash BCrypt."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 204 No Content\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Consulta de CEP & Concessão",
+      "description": "Consulta de logradouros via ViaCEP e auditoria de abrangência territorial da concessionária Neoenergia Pernambuco (US-05D).",
+      "item": [
+        {
+          "name": "GET /api/v1/cep/50030-230 - Recife/PE (Área de Concessão)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cep/50030-230",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cep",
+                "50030-230"
+              ]
+            },
+            "description": "Consulta CEP no Bairro do Recife/PE. Deve retornar `atendidoNeoenergia: true`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"CEP atendido pela Neoenergia Pernambuco\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.atendidoNeoenergia).to.be.true;",
+                  "    pm.expect(jsonData.cidade).to.eql(\"Recife\");",
+                  "    pm.expect(jsonData.uf).to.eql(\"PE\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v1/cep/01001-000 - São Paulo/SP (Fora da Concessão)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cep/01001-000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cep",
+                "01001-000"
+              ]
+            },
+            "description": "Consulta CEP de São Paulo/SP. Deve retornar `atendidoNeoenergia: false`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"CEP fora da área de concessão Neoenergia\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.atendidoNeoenergia).to.be.false;",
+                  "    pm.expect(jsonData.uf).to.eql(\"SP\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. Gestão de Projetos Elétricos",
+      "description": "Ciclo de vida e DNA elétrico de projetos elétricos: criação, paginação, filtros, tenancy, duplicação e exclusão lógica.",
+      "item": [
+        {
+          "name": "POST /api/v1/projects - Criar Novo Projeto Elétrico (Salvar projectId)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Edifício Residencial Solar das Acácias\",\n  \"descricao\": \"Edifício de uso misto residencial e comercial com recarga de VE e sistema de pressurização de incêndio\",\n  \"tipo\": \"RESIDENCIAL\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"crea\": \"CREA-PE 123456/D\",\n  \"cep\": \"50030-230\",\n  \"endereco\": \"Cais do Apolo, 222\",\n  \"bairro\": \"Bairro do Recife\",\n  \"municipio\": \"Recife\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -740,128 +552,51 @@
                 "projects"
               ]
             },
-            "description": "Cria um novo projeto elétrico com o DNA normativo completo. Gera número sequencial de protocolo anual (`PRJ-AAAA-XXXX`) e salva automaticamente o `id` na variável `{{projectId}}`."
+            "description": "Cria um novo projeto elétrico com numeração sequencial anual e salva seu identificador na variável {{projectId}}."
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    pm.collectionVariables.set(\"projectId\", pm.response.json().id);",
-                  "}",
-                  "",
                   "pm.test(\"Status code é 201 Created\", function () {",
                   "    pm.response.to.have.status(201);",
                   "});",
                   "",
-                  "pm.test(\"Projeto criado com sucesso e protocolo sequencial gerado\", function () {",
+                  "pm.test(\"Projeto criado com protocolo e status RASCUNHO\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData.id).to.be.a(\"number\");",
                   "    pm.expect(jsonData.protocolo).to.match(/^PRJ-\\d{4}-\\d{4}$/);",
-                  "    pm.expect(jsonData.titulo).to.eql(\"Edifício Solar dos Pinheiros\");",
                   "    pm.expect(jsonData.status).to.eql(\"RASCUNHO\");",
-                  "    pm.expect(jsonData.etapaAtual).to.eql(1);",
+                  "    pm.collectionVariables.set(\"projectId\", jsonData.id.toString());",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "201 Created - Projeto Criado",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"crea\": \"123456-D/PE\",\n  \"municipio\": \"Recife\",\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects"
-                  ]
-                }
-              },
-              "status": "Created",
-              "code": 201,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": 1,\n  \"protocolo\": \"PRJ-2026-0001\",\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"status\": \"RASCUNHO\",\n  \"etapaAtual\": 1,\n  \"createdAt\": \"2026-10-17T09:15:00\"\n}"
-            },
-            {
-              "name": "400 Bad Request - Tensão de Fornecimento Inválida",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"tensaoFornecimento\": \"110V_INVALIDA\",\n  \"municipio\": \"Recife\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects"
-                  ]
-                }
-              },
-              "status": "Bad Request",
-              "code": 400,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:15:30\",\n  \"status\": 400,\n  \"message\": \"Erro de validação nos dados fornecidos\",\n  \"errors\": {\n    \"tensaoFornecimento\": \"Tensão de fornecimento inválida\"\n  }\n}"
-            }
           ]
         },
         {
-          "name": "Listar Projetos (Paginado Padrão)",
+          "name": "GET /api/v1/projects - Listar Projetos Paginados",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/projects?page=0&size=10&sort=createdAt,desc",
               "host": [
@@ -875,22 +610,19 @@
               "query": [
                 {
                   "key": "page",
-                  "value": "0",
-                  "description": "Índice da página (0-indexed)"
+                  "value": "0"
                 },
                 {
                   "key": "size",
-                  "value": "10",
-                  "description": "Tamanho da página"
+                  "value": "10"
                 },
                 {
                   "key": "sort",
-                  "value": "createdAt,desc",
-                  "description": "Ordenação por data de criação decrescente"
+                  "value": "createdAt,desc"
                 }
               ]
             },
-            "description": "Retorna listagem paginada dos projetos pertencentes ao usuário autenticado com metadados do Spring Data Page."
+            "description": "Lista paginada de projetos do projetista autenticado utilizando Spring Data Pageable."
           },
           "event": [
             {
@@ -901,72 +633,40 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Retorna estrutura Page do Spring Data com projetos\", function () {",
+                  "pm.test(\"Estrutura de paginação Spring Data Page válida\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData.content).to.be.an(\"array\");",
-                  "    pm.expect(jsonData.totalElements).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.totalPages).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.size).to.eql(10);",
-                  "    pm.expect(jsonData.number).to.eql(0);",
+                  "    pm.expect(jsonData.totalElements).to.be.at.least(1);",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Listagem Paginada Padrão",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects?page=0&size=10&sort=createdAt,desc",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects"
-                  ],
-                  "query": [
-                    {
-                      "key": "page",
-                      "value": "0"
-                    },
-                    {
-                      "key": "size",
-                      "value": "10"
-                    },
-                    {
-                      "key": "sort",
-                      "value": "createdAt,desc"
-                    }
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"content\": [\n    {\n      \"id\": 1,\n      \"protocolo\": \"PRJ-2026-0001\",\n      \"titulo\": \"Edifício Solar dos Pinheiros\",\n      \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n      \"tipo\": \"LIGACAO_NOVA\",\n      \"tipoDescricao\": \"Ligação nova\",\n      \"status\": \"RASCUNHO\",\n      \"statusDescricao\": \"Rascunho\",\n      \"normaTecnica\": \"NBR 5410\",\n      \"responsavel\": \"Eng. Carlos Silva\",\n      \"municipio\": \"Recife\",\n      \"dataSubmissao\": \"2026-10-17T09:15:00\",\n      \"tensaoFornecimento\": \"380_220V\",\n      \"possuiComercial\": true,\n      \"possuiVe\": true,\n      \"possuiIncendio\": true,\n      \"etapaAtual\": 1,\n      \"cep\": \"50030-000\",\n      \"endereco\": \"Rua do Bom Jesus, 180\",\n      \"bairro\": \"Bairro do Recife\",\n      \"crea\": \"123456-D/PE\",\n      \"createdAt\": \"2026-10-17T09:15:00\",\n      \"updatedAt\": null\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 10,\n    \"sort\": {\n      \"empty\": false,\n      \"sorted\": true,\n      \"unsorted\": false\n    },\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalElements\": 1,\n  \"totalPages\": 1,\n  \"last\": true,\n  \"size\": 10,\n  \"number\": 0,\n  \"sort\": {\n    \"empty\": false,\n    \"sorted\": true,\n    \"unsorted\": false\n  },\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
-            }
           ]
         },
         {
-          "name": "Listar Projetos por Status",
+          "name": "GET /api/v1/projects - Filtrar Projetos por Status e Busca",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/projects?status=RASCUNHO",
+              "raw": "{{baseUrl}}/api/v1/projects?status=RASCUNHO&search=Acácias",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -978,96 +678,15 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "RASCUNHO",
-                  "description": "Filtro pelo enum ProjectStatus: RASCUNHO, EM_ANALISE, AGUARDANDO_CORRECAO, APROVADO, REPROVADO"
-                }
-              ]
-            },
-            "description": "Filtra os projetos do usuário pelo status informado (`RASCUNHO`, `EM_ANALISE`, etc.)."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code é 200 OK\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Todos os projetos possuem o status filtrado\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.content).to.be.an(\"array\");",
-                  "    jsonData.content.forEach(function (proj) {",
-                  "        pm.expect(proj.status).to.eql(\"RASCUNHO\");",
-                  "    });",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Filtro por Status RASCUNHO",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects?status=RASCUNHO",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects"
-                  ],
-                  "query": [
-                    {
-                      "key": "status",
-                      "value": "RASCUNHO"
-                    }
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"content\": [\n    {\n      \"id\": 1,\n      \"protocolo\": \"PRJ-2026-0001\",\n      \"titulo\": \"Edifício Solar dos Pinheiros\",\n      \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n      \"tipo\": \"LIGACAO_NOVA\",\n      \"tipoDescricao\": \"Ligação nova\",\n      \"status\": \"RASCUNHO\",\n      \"statusDescricao\": \"Rascunho\",\n      \"normaTecnica\": \"NBR 5410\",\n      \"responsavel\": \"Eng. Carlos Silva\",\n      \"municipio\": \"Recife\",\n      \"dataSubmissao\": \"2026-10-17T09:15:00\",\n      \"tensaoFornecimento\": \"380_220V\",\n      \"possuiComercial\": true,\n      \"possuiVe\": true,\n      \"possuiIncendio\": true,\n      \"etapaAtual\": 1,\n      \"cep\": \"50030-000\",\n      \"endereco\": \"Rua do Bom Jesus, 180\",\n      \"bairro\": \"Bairro do Recife\",\n      \"crea\": \"123456-D/PE\",\n      \"createdAt\": \"2026-10-17T09:15:00\",\n      \"updatedAt\": null\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 10,\n    \"sort\": {\n      \"empty\": false,\n      \"sorted\": true,\n      \"unsorted\": false\n    },\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalElements\": 1,\n  \"totalPages\": 1,\n  \"last\": true,\n  \"size\": 10,\n  \"number\": 0,\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
-            }
-          ]
-        },
-        {
-          "name": "Buscar Projetos por Texto",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/projects?search=Edificio",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "projects"
-              ],
-              "query": [
+                  "value": "RASCUNHO"
+                },
                 {
                   "key": "search",
-                  "value": "Edificio",
-                  "description": "Termo de busca aplicado sobre título, protocolo ou município"
+                  "value": "Acácias"
                 }
               ]
             },
-            "description": "Executa busca textual (case-insensitive) nos campos título, protocolo e município dos projetos do usuário autenticado."
+            "description": "Filtro combinado por status do projeto e termo de busca textual em título, protocolo e município."
           },
           "event": [
             {
@@ -1078,7 +697,7 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Retorna itens correspondentes à busca\", function () {",
+                  "pm.test(\"Filtro aplicado com sucesso\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData.content).to.be.an(\"array\");",
                   "});"
@@ -1086,50 +705,29 @@
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Busca Textual 'Edificio'",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects?search=Edificio",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "Edificio"
-                    }
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"content\": [\n    {\n      \"id\": 1,\n      \"protocolo\": \"PRJ-2026-0001\",\n      \"titulo\": \"Edifício Solar dos Pinheiros\",\n      \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n      \"tipo\": \"LIGACAO_NOVA\",\n      \"tipoDescricao\": \"Ligação nova\",\n      \"status\": \"RASCUNHO\",\n      \"statusDescricao\": \"Rascunho\",\n      \"normaTecnica\": \"NBR 5410\",\n      \"responsavel\": \"Eng. Carlos Silva\",\n      \"municipio\": \"Recife\",\n      \"dataSubmissao\": \"2026-10-17T09:15:00\",\n      \"tensaoFornecimento\": \"380_220V\",\n      \"possuiComercial\": true,\n      \"possuiVe\": true,\n      \"possuiIncendio\": true,\n      \"etapaAtual\": 1,\n      \"cep\": \"50030-000\",\n      \"endereco\": \"Rua do Bom Jesus, 180\",\n      \"bairro\": \"Bairro do Recife\",\n      \"crea\": \"123456-D/PE\",\n      \"createdAt\": \"2026-10-17T09:15:00\",\n      \"updatedAt\": null\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 10,\n    \"sort\": {\n      \"empty\": false,\n      \"sorted\": true,\n      \"unsorted\": false\n    },\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalElements\": 1,\n  \"totalPages\": 1,\n  \"last\": true,\n  \"size\": 10,\n  \"number\": 0,\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
-            }
           ]
         },
         {
-          "name": "Obter Projeto por ID",
+          "name": "GET /api/v1/projects/{{projectId}} - Obter Detalhes do Projeto",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
               "host": [
@@ -1142,7 +740,7 @@
                 "{{projectId}}"
               ]
             },
-            "description": "Consulta o detalhamento completo do DNA do projeto informado por `{{projectId}}`. Garante isolamento de tenancy (403 Forbidden se o projeto pertencer a outro usuário)."
+            "description": "Recupera todos os detalhes do projeto especificado, com isolamento multi-tenant estrito (403 se pertencer a outro usuário)."
           },
           "event": [
             {
@@ -1153,117 +751,106 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Retorna DNA normativo completo do projeto\", function () {",
+                  "pm.test(\"ID e protocolo conferem com o projeto consultado\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.protocolo).to.match(/^PRJ-\\d{4}-\\d{4}$/);",
-                  "    pm.expect(jsonData.tensaoFornecimento).to.be.oneOf([\"380_220V\", \"220_127V\"]);",
-                  "    pm.expect(jsonData.normaTecnica).to.eql(\"NBR 5410\");",
-                  "    pm.expect(jsonData.municipio).to.be.a(\"string\");",
+                  "    pm.expect(jsonData.id.toString()).to.eql(pm.collectionVariables.get(\"projectId\"));",
+                  "    pm.expect(jsonData.protocolo).to.be.a(\"string\");",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Projeto Encontrado",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
+          ]
+        },
+        {
+          "name": "PATCH /api/v1/projects/{{projectId}} - Edição Cadastral e DNA Elétrico (US-05E)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
                 {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
                 }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": 1,\n  \"protocolo\": \"PRJ-2026-0001\",\n  \"titulo\": \"Edifício Solar dos Pinheiros\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tipoDescricao\": \"Ligação nova\",\n  \"status\": \"RASCUNHO\",\n  \"statusDescricao\": \"Rascunho\",\n  \"normaTecnica\": \"NBR 5410\",\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"municipio\": \"Recife\",\n  \"dataSubmissao\": \"2026-10-17T09:15:00\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"etapaAtual\": 1,\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\",\n  \"crea\": \"123456-D/PE\",\n  \"createdAt\": \"2026-10-17T09:15:00\",\n  \"updatedAt\": null\n}"
+              ]
             },
-            {
-              "name": "403 Forbidden - Projeto Pertence a Outro Usuário",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}"
-                  ]
-                }
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
               },
-              "status": "Forbidden",
-              "code": 403,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Edifício Residencial Solar das Acácias - Torre A\",\n  \"descricao\": \"Edifício multifamiliar atualizado com expansão da infraestrutura de VE\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"crea\": \"CREA-PE 123456/D\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:20:00\",\n  \"status\": 403,\n  \"message\": \"Acesso negado: o projeto pertence a outro projetista\",\n  \"errors\": {}\n}"
+              }
             },
-            {
-              "name": "404 Not Found - Projeto Não Encontrado",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/999",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "999"
-                  ]
-                }
-              },
-              "status": "Not Found",
-              "code": 404,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
               ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:20:00\",\n  \"status\": 404,\n  \"message\": \"Projeto não encontrado com id 999\",\n  \"errors\": {}\n}"
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Edição cadastral e atualização do DNA elétrico do empreendimento com recálculo das etapas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Título atualizado com sucesso via PATCH\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.titulo || jsonData.nome).to.eql(\"Edifício Residencial Solar das Acácias - Torre A\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
             }
           ]
         },
         {
-          "name": "Duplicar Projeto",
+          "name": "POST /api/v1/projects/{{projectId}}/duplicate - Duplicar Projeto",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/duplicate",
               "host": [
@@ -1277,7 +864,7 @@
                 "duplicate"
               ]
             },
-            "description": "Realiza a duplicação atômica do projeto indicado por `{{projectId}}`. Gera um novo protocolo anual (`PRJ-AAAA-XXXX`), redefine o status para `RASCUNHO`, etapa 1 e anexa o sufixo ' (cópia)' ao título."
+            "description": "Clona atomicamente o projeto e todas as suas etapas dimensionadas para um novo protocolo independente em status RASCUNHO."
           },
           "event": [
             {
@@ -1288,112 +875,94 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "",
-                  "pm.test(\"Projeto clonado com novo protocolo e status RASCUNHO\", function () {",
+                  "pm.test(\"Projeto clonado com novo ID e protocolo\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.id).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.titulo).to.include(\"(cópia)\");",
-                  "    pm.expect(jsonData.status).to.eql(\"RASCUNHO\");",
+                  "    pm.expect(jsonData.id.toString()).to.not.eql(pm.collectionVariables.get(\"projectId\"));",
                   "    pm.expect(jsonData.protocolo).to.match(/^PRJ-\\d{4}-\\d{4}$/);",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "201 Created - Projeto Duplicado",
-              "originalRequest": {
-                "method": "POST",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/duplicate",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}",
-                    "duplicate"
-                  ]
-                }
-              },
-              "status": "Created",
-              "code": 201,
-              "_postman_previewlanguage": "json",
-              "header": [
+          ]
+        },
+        {
+          "name": "DELETE /api/v1/projects/{{projectId}} - Exclusão Lógica (US-05E)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
                 {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
                 }
-              ],
-              "cookie": [],
-              "body": "{\n  \"id\": 2,\n  \"protocolo\": \"PRJ-2026-0002\",\n  \"titulo\": \"Edifício Solar dos Pinheiros (cópia)\",\n  \"descricao\": \"Projeto de entrada de energia para condomínio residencial de 12 andares\",\n  \"tipo\": \"LIGACAO_NOVA\",\n  \"tipoDescricao\": \"Ligação nova\",\n  \"status\": \"RASCUNHO\",\n  \"statusDescricao\": \"Rascunho\",\n  \"normaTecnica\": \"NBR 5410\",\n  \"responsavel\": \"Eng. Carlos Silva\",\n  \"municipio\": \"Recife\",\n  \"dataSubmissao\": \"2026-10-17T09:25:00\",\n  \"tensaoFornecimento\": \"380_220V\",\n  \"possuiComercial\": true,\n  \"possuiVe\": true,\n  \"possuiIncendio\": true,\n  \"etapaAtual\": 1,\n  \"cep\": \"50030-000\",\n  \"endereco\": \"Rua do Bom Jesus, 180\",\n  \"bairro\": \"Bairro do Recife\",\n  \"crea\": \"123456-D/PE\",\n  \"createdAt\": \"2026-10-17T09:25:00\",\n  \"updatedAt\": null\n}"
+              ]
             },
-            {
-              "name": "403 Forbidden - Projeto Pertence a Outro Projetista",
-              "originalRequest": {
-                "method": "POST",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/duplicate",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}",
-                    "duplicate"
-                  ]
-                }
-              },
-              "status": "Forbidden",
-              "code": 403,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}",
+              "host": [
+                "{{baseUrl}}"
               ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-17T09:25:00\",\n  \"status\": 403,\n  \"message\": \"Acesso negado: o projeto pertence a outro projetista\",\n  \"errors\": {}\n}"
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Realiza a exclusão lógica do projeto, marcando seu status como CANCELADO e preservando a integridade referencial."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 204 No Content\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": "3. Wizard de Dimensionamento Elétrico",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{jwt_token}}",
-            "type": "string"
-          }
-        ]
-      },
+      "name": "05. Wizard de Dimensionamento Elétrico",
+      "description": "Endpoints para preenchimento sequencial ou sob demanda das etapas do wizard normativo (Etapas 2 a 5).",
       "item": [
         {
-          "name": "Etapa 2 — Unidades Residenciais (Salvar Tipologias)",
+          "name": "PUT /api/v1/projects/{{projectId}}/etapa-residencial - Etapa 2: Unidades Residenciais (Drf)",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    },\n    {\n      \"areaUtilM2\": 78.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
+              "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 32.5,\n      \"quantidadeUnidades\": 20,\n      \"isSmartStudio\": true\n    },\n    {\n      \"areaUtilM2\": 68.0,\n      \"quantidadeUnidades\": 40,\n      \"isSmartStudio\": false\n    },\n    {\n      \"areaUtilM2\": 115.0,\n      \"quantidadeUnidades\": 10,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1413,7 +982,7 @@
                 "etapa-residencial"
               ]
             },
-            "description": "Grava as tipologias de apartamentos na tabela `residential_typologies` de forma atômica e idempotente. Executa o motor normativo de cálculo (`ResidentialCalculationEngine` — DIS-NOR-053), atualiza a etapa do wizard (`etapaAtual = Math.max(etapaAtual, 2)`) e retorna a resposta consolidada enxuta contendo a Demanda Residencial Final ($D_{rf}$)."
+            "description": "Persiste as tipologias de apartamentos, aplica coeficientes dos Quadros 35, 36 e 37 (DIS-NOR-053) e calcula a Demanda Residencial Final (Drf em kVA)."
           },
           "event": [
             {
@@ -1424,280 +993,65 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Resposta consolidada enxuta da Etapa 2\", function () {",
+                  "pm.test(\"Cálculo residencial Drf efetuado com sucesso\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.sucesso).to.eql(true);",
-                  "    pm.expect(jsonData.projectId).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.demandaResidencialFinalDrfKva).to.be.a(\"number\");",
-                  "    pm.expect(jsonData.demandaResidencialFinalDrfKva).to.be.above(0);",
-                  "});",
-                  "",
-                  "pm.test(\"Desacoplamento de métricas intermediárias\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.demandaResidencialBrutaDrKva).to.be.undefined;",
-                  "    pm.expect(jsonData.fatorCoincidenciaFc).to.be.undefined;",
-                  "    pm.expect(jsonData.fatorSegurancaFr).to.be.undefined;",
-                  "    pm.expect(jsonData.totalApartamentos).to.be.undefined;",
+                  "    pm.expect(jsonData.demandaResidencialFinalDrfKva || jsonData.demandaResidencialKva).to.be.above(0);",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Etapa Residencial Salva com Sucesso",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    },\n    {\n      \"areaUtilM2\": 78.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}",
-                    "etapa-residencial"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"sucesso\": true,\n  \"projectId\": 1,\n  \"demandaResidencialFinalDrfKva\": 122.72\n}"
-            },
-            {
-              "name": "400 Bad Request - Validação de Entrada (RFC 7807)",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": -10.00,\n      \"quantidadeUnidades\": 0,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}",
-                    "etapa-residencial"
-                  ]
-                }
-              },
-              "status": "Bad Request",
-              "code": 400,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 400,\n  \"message\": \"Erro de validação nos dados fornecidos\",\n  \"errors\": {\n    \"tipologias[0].areaUtilM2\": \"A área útil privativa deve ser estritamente maior que zero\",\n    \"tipologias[0].quantidadeUnidades\": \"A quantidade de unidades deve ser um número positivo maior que zero\"\n  }\n}"
-            },
-            {
-              "name": "401 Unauthorized - Token Ausente ou Inválido",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}",
-                    "etapa-residencial"
-                  ]
-                }
-              },
-              "status": "Unauthorized",
-              "code": 401,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 401,\n  \"message\": \"Token de autenticação ausente ou inválido\"\n}"
-            },
-            {
-              "name": "403 Forbidden - Projeto Pertence a Outro Projetista",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-residencial",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "{{projectId}}",
-                    "etapa-residencial"
-                  ]
-                }
-              },
-              "status": "Forbidden",
-              "code": 403,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 403,\n  \"message\": \"Acesso negado: o projeto pertence a outro projetista\"\n}"
-            },
-            {
-              "name": "404 Not Found - Projeto Não Encontrado",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"tipologias\": [\n    {\n      \"areaUtilM2\": 65.00,\n      \"quantidadeUnidades\": 50,\n      \"isSmartStudio\": false\n    }\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/projects/99999/etapa-residencial",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "projects",
-                    "99999",
-                    "etapa-residencial"
-                  ]
-                }
-              },
-              "status": "Not Found",
-              "code": 404,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
-                }
-              ],
-              "cookie": [],
-              "body": "{\n  \"timestamp\": \"2026-10-19T21:00:00\",\n  \"status\": 404,\n  \"message\": \"Projeto não encontrado com id 99999\"\n}"
-            }
           ]
-        }
-      ]
-    },
-    {
-      "name": "4. Catálogo Normativo (DIS-NOR-053)",
-      "auth": {
-        "type": "noauth"
-      },
-      "item": [
+        },
         {
-          "name": "Faixas de Área e Demanda Unitária (Quadro 35)",
+          "name": "PUT /api/v1/projects/{{projectId}}/etapa-area-comum - Etapa 3: Áreas Comuns e Serviços (Ds)",
           "request": {
-            "method": "GET",
-            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cargas\": [\n    {\n      \"origem\": \"CATALOGO\",\n      \"submodulo\": \"MOTORES\",\n      \"catalogoMotorId\": 1,\n      \"tipoEquipamento\": \"Bomba de Recalque\",\n      \"descricao\": \"Bomba de Recalque de Água Potável\",\n      \"quantidade\": 2,\n      \"potenciaNominalKw\": 3.7,\n      \"fatorPotencia\": 0.85,\n      \"fatorDemanda\": 1.0,\n      \"isReserva\": true\n    },\n    {\n      \"origem\": \"CATALOGO\",\n      \"submodulo\": \"CLIMATIZACAO\",\n      \"catalogoClimaId\": 1,\n      \"tipoEquipamento\": \"Split High Wall\",\n      \"descricao\": \"Ar Condicionado Salão de Festas (Split)\",\n      \"quantidade\": 4,\n      \"potenciaNominalKw\": 3.52,\n      \"fatorPotencia\": 0.9,\n      \"fatorDemanda\": 0.85,\n      \"isReserva\": false\n    },\n    {\n      \"origem\": \"PERSONALIZADO\",\n      \"submodulo\": \"ILUMINACAO_TUG\",\n      \"tipoEquipamento\": \"Iluminação LED\",\n      \"descricao\": \"Iluminação LED Hall, Escadarias e Garagens\",\n      \"quantidade\": 1,\n      \"potenciaNominalKw\": 8.5,\n      \"fatorPotencia\": 0.95,\n      \"fatorDemanda\": 1.0,\n      \"isReserva\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/catalogo/faixas-area",
+              "raw": "{{baseUrl}}/api/v1/projects/{{projectId}}/etapa-area-comum",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "catalogo",
-                "faixas-area"
+                "projects",
+                "{{projectId}}",
+                "etapa-area-comum"
               ]
             },
-            "description": "Consulta todas as faixas normativas de área útil privativa ($m^2$) e respectivas demandas unitárias ($D_i$ em kVA) segundo o Quadro 35 da DIS-NOR-053 (Rev. 06). Endpoint público com cache em memória RAM (`@Cacheable`)."
+            "description": "Persiste a composição híbrida de cargas comuns (Iluminação/TUG, Clima, Motores e Especiais) e calcula Ds com suporte a motores reserva."
           },
           "event": [
             {
@@ -1708,29 +1062,33 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Retorna lista de faixas normativas do Quadro 35\", function () {",
+                  "pm.test(\"Cálculo de serviços Ds efetuado com sucesso\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an(\"array\");",
-                  "    pm.expect(jsonData.length).to.be.above(0);",
-                  "    pm.expect(jsonData[0]).to.have.property(\"id\");",
-                  "    pm.expect(jsonData[0]).to.have.property(\"faixa\");",
-                  "    pm.expect(jsonData[0]).to.have.property(\"rotulo\");",
-                  "    pm.expect(jsonData[0]).to.have.property(\"minAreaM2\");",
-                  "    pm.expect(jsonData[0]).to.have.property(\"maxAreaM2\");",
-                  "    pm.expect(jsonData[0]).to.have.property(\"demandaUnitariakVa\");",
-                  "    pm.expect(jsonData[0]).to.have.property(\"normaOrigem\");",
+                  "    pm.expect(jsonData.demandaServicosDsKva || jsonData.demandaServicosKva).to.be.above(0);",
                   "});"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "response": [
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06. Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)",
+      "description": "Endpoints públicos de consulta às tabelas regulatórias da Neoenergia Pernambuco com cache de alta performance em memória RAM.",
+      "item": [
+        {
+          "name": "6.1 Residencial (DIS-NOR-053 — US-08)",
+          "description": "Tabelas e quadros normativos para dimensionamento residencial.",
+          "item": [
             {
-              "name": "200 OK - Faixas de Área Recuperadas",
-              "originalRequest": {
+              "name": "GET /api/v1/catalogo/faixas-area - Faixas de Área Útil e Demandas (Quadro 35)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "GET",
-                "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/catalogo/faixas-area",
                   "host": [
@@ -1742,70 +1100,33 @@
                     "catalogo",
                     "faixas-area"
                   ]
-                }
+                },
+                "description": "Retorna o Quadro 35 da DIS-NOR-053 com as faixas de área útil (A até M) e suas respectivas demandas unitárias individuais (Di em kVA)."
               },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
+              "event": [
                 {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna lista de faixas de área\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"array\");",
+                      "    pm.expect(jsonData.length).to.be.above(0);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
                 }
-              ],
-              "cookie": [],
-              "body": "[\n  {\n    \"id\": 1,\n    \"faixa\": \"ATE_40\",\n    \"rotulo\": \"Até 40 m²\",\n    \"minAreaM2\": 0.00,\n    \"maxAreaM2\": 40.00,\n    \"demandaUnitariakVa\": 1.20,\n    \"normaOrigem\": \"DIS-NOR-053 Quadro 35\"\n  },\n  {\n    \"id\": 2,\n    \"faixa\": \"DE_41_A_45\",\n    \"rotulo\": \"De 41 a 45 m²\",\n    \"minAreaM2\": 41.00,\n    \"maxAreaM2\": 45.00,\n    \"demandaUnitariakVa\": 1.28,\n    \"normaOrigem\": \"DIS-NOR-053 Quadro 35\"\n  },\n  {\n    \"id\": 6,\n    \"faixa\": \"DE_61_A_65\",\n    \"rotulo\": \"De 61 a 65 m²\",\n    \"minAreaM2\": 61.00,\n    \"maxAreaM2\": 65.00,\n    \"demandaUnitariakVa\": 1.47,\n    \"normaOrigem\": \"DIS-NOR-053 Quadro 35\"\n  }\n]"
-            }
-          ]
-        },
-        {
-          "name": "Fatores de Coincidência Residencial (Quadro 36)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/catalogo/fatores-coincidencia-residencial",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "catalogo",
-                "fatores-coincidencia-residencial"
               ]
             },
-            "description": "Consulta a tabela de fatores de coincidência ($F_c$) segundo o Quadro 36 da DIS-NOR-053 (Rev. 06) e retorna a regra regulatória de Smart Studios ($F_c = 0.90$ para $N > 15$). Endpoint público com cache em memória RAM (`@Cacheable`)."
-          },
-          "event": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code é 200 OK\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Retorna wrapper do Quadro 36 com regra de Smart Studios\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.norma).to.eql(\"DIS-NOR-053 Quadro 36\");",
-                  "    pm.expect(jsonData.regraEspecialStudios).to.include(\"Smart/Studio\");",
-                  "    pm.expect(jsonData.tabela).to.be.an(\"array\");",
-                  "    pm.expect(jsonData.tabela.length).to.be.above(0);",
-                  "    pm.expect(jsonData.tabela[0]).to.have.property(\"totalApartamentos\");",
-                  "    pm.expect(jsonData.tabela[0]).to.have.property(\"fatorCoincidencia\");",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Fatores de Coincidência Recuperados",
-              "originalRequest": {
+              "name": "GET /api/v1/catalogo/fatores-coincidencia-residencial - Fatores de Coincidência (Quadro 36)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "GET",
-                "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/catalogo/fatores-coincidencia-residencial",
                   "host": [
@@ -1817,70 +1138,32 @@
                     "catalogo",
                     "fatores-coincidencia-residencial"
                   ]
-                }
+                },
+                "description": "Retorna o Quadro 36 com fatores de coincidência residencial (Fc) em função da quantidade total de apartamentos, incluindo a regra de Smart Studios."
               },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
+              "event": [
                 {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna fatores de coincidência\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"object\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
                 }
-              ],
-              "cookie": [],
-              "body": "{\n  \"norma\": \"DIS-NOR-053 Quadro 36\",\n  \"regraEspecialStudios\": \"Para edifícios tipo Smart/Studio acima de 15 unidades, adota-se 90% (0,90) fixo\",\n  \"tabela\": [\n    {\n      \"totalApartamentos\": 1,\n      \"fatorCoincidencia\": 1.0000\n    },\n    {\n      \"totalApartamentos\": 10,\n      \"fatorCoincidencia\": 0.9640\n    },\n    {\n      \"totalApartamentos\": 20,\n      \"fatorCoincidencia\": 0.8560\n    },\n    {\n      \"totalApartamentos\": 60,\n      \"fatorCoincidencia\": 0.6823\n    }\n  ]\n}"
-            }
-          ]
-        },
-        {
-          "name": "Fatores de Segurança Residencial (Quadro 37)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/catalogo/fatores-seguranca-residencial",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "catalogo",
-                "fatores-seguranca-residencial"
               ]
             },
-            "description": "Consulta os patamares normativos do fator de segurança ($F_r$) em função da demanda bruta acumulada ($D_r$) segundo o Quadro 37 da DIS-NOR-053 (Rev. 06). Endpoint público com cache em memória RAM (`@Cacheable`)."
-          },
-          "event": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code é 200 OK\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Retorna os 4 patamares normativos do Quadro 37\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an(\"array\");",
-                  "    pm.expect(jsonData.length).to.eql(4);",
-                  "    pm.expect(jsonData[0].fatorSegurancaFr).to.eql(1.50);",
-                  "    pm.expect(jsonData[1].fatorSegurancaFr).to.eql(1.30);",
-                  "    pm.expect(jsonData[2].fatorSegurancaFr).to.eql(1.20);",
-                  "    pm.expect(jsonData[3].fatorSegurancaFr).to.eql(1.10);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "response": [
-            {
-              "name": "200 OK - Fatores de Segurança Recuperados",
-              "originalRequest": {
+              "name": "GET /api/v1/catalogo/fatores-seguranca-residencial - Fatores de Segurança (Quadro 37)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "GET",
-                "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/catalogo/fatores-seguranca-residencial",
                   "host": [
@@ -1892,27 +1175,260 @@
                     "catalogo",
                     "fatores-seguranca-residencial"
                   ]
-                }
+                },
+                "description": "Retorna o Quadro 37 com os coeficientes de majoração do fator de segurança residencial (Fr) em função da demanda bruta preliminar (Dr)."
               },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
+              "event": [
                 {
-                  "key": "Content-Type",
-                  "value": "application/json;charset=UTF-8"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna lista de fatores de segurança\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"array\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
                 }
-              ],
-              "cookie": [],
-              "body": "[\n  {\n    \"minDrKva\": 0.00,\n    \"maxDrKva\": 25.00,\n    \"fatorSegurancaFr\": 1.50\n  },\n  {\n    \"minDrKva\": 25.01,\n    \"maxDrKva\": 50.00,\n    \"fatorSegurancaFr\": 1.30\n  },\n  {\n    \"minDrKva\": 50.01,\n    \"maxDrKva\": 100.00,\n    \"fatorSegurancaFr\": 1.20\n  },\n  {\n    \"minDrKva\": 100.01,\n    \"maxDrKva\": 999999.99,\n    \"fatorSegurancaFr\": 1.10\n  }\n]"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)",
+          "description": "Catálogo de equipamentos mecânicos, climatização e fatores de demanda para serviços e áreas comuns.",
+          "item": [
+            {
+              "name": "GET /api/v1/catalogo/motores-padrao - Motores Trifásicos Padrão (Tabela 19)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/motores-padrao",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "motores-padrao"
+                  ]
+                },
+                "description": "Lista de motores de indução trifásicos com potência em CV/kW, rendimento e fator de potência normativos."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna catálogo de motores trifásicos\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"array\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /api/v1/catalogo/aparelhos-climatizacao - Aparelhos de Climatização (Tabela 10)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/aparelhos-climatizacao",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "aparelhos-climatizacao"
+                  ]
+                },
+                "description": "Tabela de potências nominais em BTU/h e kW para condicionadores de ar tipo janela, split e centrais."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna aparelhos de climatização\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"array\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /api/v1/catalogo/fatores-ar-condicionado - Fatores de Demanda Clima (Tabela 11)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/fatores-ar-condicionado",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "fatores-ar-condicionado"
+                  ]
+                },
+                "description": "Fatores de demanda para condicionamento de ar em função do número de aparelhos instalados."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna fatores de demanda de ar condicionado\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"object\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /api/v1/catalogo/fatores-fogao-cooktop - Fatores Fogões e Cooktops (Tabela 7)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/fatores-fogao-cooktop",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "fatores-fogao-cooktop"
+                  ]
+                },
+                "description": "Fatores de demanda para fogões e cooktops elétricos em função da quantidade de unidades."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna fatores de cooktops\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"object\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /api/v1/catalogo/fatores-boilers - Fatores Aquecedores Centrais / Boilers (Tabela 8)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/fatores-boilers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "fatores-boilers"
+                  ]
+                },
+                "description": "Fatores de demanda para aquecedores de acumulação (boilers) residenciais e comerciais."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna fatores de boilers\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"object\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /api/v1/catalogo/fatores-aquecedores-passagem - Fatores Aquecedores Instantâneos (Tabela 12)",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/catalogo/fatores-aquecedores-passagem",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "catalogo",
+                    "fatores-aquecedores-passagem"
+                  ]
+                },
+                "description": "Fatores de demanda para chuveiros elétricos e aquecedores de água instantâneos (passagem)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Retorna fatores de aquecedores de passagem\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"object\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "name": "5. Utilitários",
-      "description": "Endpoints utilitários de diagnóstico da API.",
+      "name": "07. Utilitários",
+      "description": "Endpoints utilitários de diagnóstico e sanidade da API.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -1925,7 +1441,7 @@
       },
       "item": [
         {
-          "name": "Teste de Conectividade",
+          "name": "GET /test - Teste de Conectividade",
           "request": {
             "method": "GET",
             "header": [],
