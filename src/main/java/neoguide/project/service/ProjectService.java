@@ -22,6 +22,15 @@ import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
+import neoguide.project.dto.SpecialLoadsStageRequest;
+import neoguide.project.dto.SpecialLoadsStageResponse;
+import neoguide.project.engine.SpecialLoadsCalculationEngine;
+import neoguide.project.engine.model.ElectricVehicleLoadInput;
+import neoguide.project.engine.model.FirePumpLoadInput;
+import neoguide.project.engine.model.SpecialLoadsCalculationInput;
+import neoguide.project.engine.model.SpecialLoadsCalculationResult;
+import neoguide.project.model.SpecialLoads;
+import neoguide.project.repository.SpecialLoadsRepository;
 import neoguide.project.dto.CommercialStageRequest;
 import neoguide.project.dto.CommercialStageResponse;
 import neoguide.project.dto.CommercialUnitItemRequest;
@@ -66,6 +75,8 @@ public class ProjectService {
     private final CommonAreaCalculationEngine commonAreaCalculationEngine;
     private final CommercialUnitRepository commercialUnitRepository;
     private final CommercialCalculationEngine commercialCalculationEngine;
+    private final SpecialLoadsRepository specialLoadsRepository;
+    private final SpecialLoadsCalculationEngine specialLoadsCalculationEngine;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
@@ -74,7 +85,9 @@ public class ProjectService {
                           CommonAreaLoadRepository commonAreaLoadRepository,
                           CommonAreaCalculationEngine commonAreaCalculationEngine,
                           CommercialUnitRepository commercialUnitRepository,
-                          CommercialCalculationEngine commercialCalculationEngine) {
+                          CommercialCalculationEngine commercialCalculationEngine,
+                          SpecialLoadsRepository specialLoadsRepository,
+                          SpecialLoadsCalculationEngine specialLoadsCalculationEngine) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.residentialTypologyRepository = residentialTypologyRepository;
@@ -83,6 +96,8 @@ public class ProjectService {
         this.commonAreaCalculationEngine = commonAreaCalculationEngine;
         this.commercialUnitRepository = commercialUnitRepository;
         this.commercialCalculationEngine = commercialCalculationEngine;
+        this.specialLoadsRepository = specialLoadsRepository;
+        this.specialLoadsCalculationEngine = specialLoadsCalculationEngine;
     }
 
     /**
@@ -748,6 +763,114 @@ public class ProjectService {
                 validator.custom(prefix + "areaM2", false, "A área em m² deve ser maior que zero quando informada");
             }
         }
+        validator.validate();
+    }
+
+    /**
+     * Salva as cargas especiais (recarga de VE e combate a incêndio) da Etapa 5 de forma atômica e idempotente (upsert).
+     */
+    @Transactional
+    public SpecialLoadsStageResponse saveSpecialLoadsStage(Long projectId, SpecialLoadsStageRequest request, Long currentUserId) {
+        validateSpecialLoadsStageRequest(request);
+
+        Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
+        }
+
+        int vagas = (request != null && request.getQtdPontosVe() != null) ? request.getQtdPontosVe() : 0;
+        BigDecimal pVe = (request != null) ? request.getPotenciaVeKw() : null;
+        BigDecimal fCustom = (request != null) ? request.getFatorSimultaneidadeCustom() : null;
+        ElectricVehicleLoadInput veInput = new ElectricVehicleLoadInput(vagas, pVe, fCustom, null);
+
+        BigDecimal cv = (request != null) ? request.getPotenciaBombaIncendioCv() : null;
+        BigDecimal kvaCustom = (request != null) ? request.getDemandaKvaCustom() : null;
+        FirePumpLoadInput mbiInput = new FirePumpLoadInput(cv, kvaCustom, true);
+
+        SpecialLoadsCalculationResult calcResult = specialLoadsCalculationEngine.calculate(
+                new SpecialLoadsCalculationInput(veInput, mbiInput, null, null)
+        );
+
+        SpecialLoads specialLoads = specialLoadsRepository.findByProjectId(projectId)
+                .orElseGet(SpecialLoads::new);
+
+        specialLoads.setProject(project);
+        specialLoads.setQtdPontosVe(vagas);
+        specialLoads.setPotenciaEstacaoVeKw(pVe);
+        specialLoads.setFatorSimultaneidadeVe(calcResult.recargaVeicular().fatorSimultaneidadeFve());
+        specialLoads.setDemandaVeKva(calcResult.recargaVeicular().demandaDveKva());
+        specialLoads.setPotenciaBombaIncendioCv(cv);
+        specialLoads.setDemandaBombaIncendioKva(calcResult.motobombaIncendio().demandaDmbiKva());
+        specialLoads.setPotenciaSolarInversorKw((request != null) ? request.getPotenciaSolarInversorKw() : null);
+
+        specialLoadsRepository.save(specialLoads);
+
+        boolean hasVe = vagas > 0 && pVe != null && pVe.compareTo(BigDecimal.ZERO) > 0;
+        boolean hasIncendio = cv != null && cv.compareTo(BigDecimal.ZERO) > 0;
+
+        project.setPossuiVe(hasVe);
+        project.setPossuiIncendio(hasIncendio);
+
+        int currentStage = project.getEtapaAtual() != null ? project.getEtapaAtual() : 1;
+        int novaEtapa = Math.max(currentStage, 5);
+        project.setEtapaAtual(novaEtapa);
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
+
+        return new SpecialLoadsStageResponse(
+                true,
+                project.getId(),
+                novaEtapa,
+                calcResult.recargaVeicular().fatorSimultaneidadeFve(),
+                calcResult.recargaVeicular().demandaDveKva(),
+                calcResult.motobombaIncendio().demandaDmbiKva(),
+                calcResult.demandaEspecialTotalKva(),
+                calcResult.alertaTrafo50Excedido(),
+                calcResult.notaAuditoria()
+        );
+    }
+
+    private void validateSpecialLoadsStageRequest(SpecialLoadsStageRequest request) {
+        if (request == null) {
+            return;
+        }
+
+        Validator validator = Validator.create();
+
+        if (request.getQtdPontosVe() != null && request.getQtdPontosVe() < 0) {
+            validator.custom("qtdPontosVe", false, "A quantidade de vagas de recarga não pode ser negativa");
+        }
+
+        if (request.getQtdPontosVe() != null && request.getQtdPontosVe() > 0) {
+            if (request.getPotenciaVeKw() == null || request.getPotenciaVeKw().compareTo(BigDecimal.ZERO) <= 0) {
+                validator.custom("potenciaVeKw", false, "A potência da estação de recarga em kW deve ser maior que zero quando houver vagas informadas");
+            }
+        }
+
+        if (request.getPotenciaVeKw() != null && request.getPotenciaVeKw().compareTo(BigDecimal.ZERO) < 0) {
+            validator.custom("potenciaVeKw", false, "A potência da estação de recarga em kW não pode ser negativa");
+        }
+
+        if (request.getPotenciaBombaIncendioCv() != null && request.getPotenciaBombaIncendioCv().compareTo(BigDecimal.ZERO) < 0) {
+            validator.custom("potenciaBombaIncendioCv", false, "A potência da motobomba de incêndio em CV não pode ser negativa");
+        }
+
+        if (request.getPotenciaSolarInversorKw() != null && request.getPotenciaSolarInversorKw().compareTo(BigDecimal.ZERO) < 0) {
+            validator.custom("potenciaSolarInversorKw", false, "A potência do inversor solar em kW não pode ser negativa");
+        }
+
+        if (request.getFatorSimultaneidadeCustom() != null &&
+                (request.getFatorSimultaneidadeCustom().compareTo(BigDecimal.ZERO) <= 0 || request.getFatorSimultaneidadeCustom().compareTo(BigDecimal.ONE) > 0)) {
+            validator.custom("fatorSimultaneidadeCustom", false, "O fator de simultaneidade customizado deve estar entre 0 e 1.00");
+        }
+
+        if (request.getDemandaKvaCustom() != null && request.getDemandaKvaCustom().compareTo(BigDecimal.ZERO) < 0) {
+            validator.custom("demandaKvaCustom", false, "A demanda customizada em kVA não pode ser negativa");
+        }
+
         validator.validate();
     }
 }

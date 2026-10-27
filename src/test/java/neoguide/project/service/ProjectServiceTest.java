@@ -1,5 +1,14 @@
 package neoguide.project.service;
 
+import neoguide.project.dto.SpecialLoadsStageRequest;
+import neoguide.project.dto.SpecialLoadsStageResponse;
+import neoguide.project.engine.SpecialLoadsCalculationEngine;
+import neoguide.project.engine.model.ElectricVehicleLoadOutput;
+import neoguide.project.engine.model.FirePumpLoadOutput;
+import neoguide.project.engine.model.SpecialLoadsCalculationResult;
+import neoguide.project.model.SpecialLoads;
+import neoguide.project.repository.SpecialLoadsRepository;
+
 import neoguide.project.dto.CommercialStageRequest;
 import neoguide.project.dto.CommercialStageResponse;
 import neoguide.project.dto.CommercialUnitItemRequest;
@@ -89,6 +98,12 @@ class ProjectServiceTest {
 
     @Mock
     private CommercialCalculationEngine commercialCalculationEngine;
+
+    @Mock
+    private SpecialLoadsRepository specialLoadsRepository;
+
+    @Mock
+    private SpecialLoadsCalculationEngine specialLoadsCalculationEngine;
 
     @InjectMocks
     private ProjectService projectService;
@@ -988,5 +1003,112 @@ class ProjectServiceTest {
         CommercialStageRequest request = new CommercialStageRequest(List.of(item));
 
         assertThrows(ValidationException.class, () -> projectService.saveCommercialStage(1L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage criando novo registro deve salvar SpecialLoads e avançar projeto para etapa 5")
+    void saveSpecialLoadsStage_novoRegistro_sucesso() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(user);
+        project.setEtapaAtual(3);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(specialLoadsRepository.findByProjectId(1L)).thenReturn(Optional.empty());
+
+        ElectricVehicleLoadOutput veOut = new ElectricVehicleLoadOutput(
+                4, new BigDecimal("7.40"), new BigDecimal("29.60"),
+                new BigDecimal("0.70"), new BigDecimal("1.00"), new BigDecimal("20.72")
+        );
+        FirePumpLoadOutput mbiOut = new FirePumpLoadOutput(
+                new BigDecimal("15.00"), new BigDecimal("14.40"), true, "ESTRELA_TRIANGULO", "DIS-NOR-030"
+        );
+        when(specialLoadsCalculationEngine.calculate(any())).thenReturn(
+                new SpecialLoadsCalculationResult(
+                        veOut, mbiOut, new BigDecimal("35.12"), new BigDecimal("14.40"),
+                        new BigDecimal("20.72"), false, null, "Auditoria teste"
+                )
+        );
+
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(4, new BigDecimal("7.40"), new BigDecimal("15.00"), null);
+
+        SpecialLoadsStageResponse response = projectService.saveSpecialLoadsStage(1L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(5, response.getEtapaAtual());
+        assertEquals(new BigDecimal("20.72"), response.getDemandaVeDveKva());
+        assertEquals(new BigDecimal("14.40"), response.getDemandaIncendioDmbiKva());
+        assertTrue(project.isPossuiVe());
+        assertTrue(project.isPossuiIncendio());
+
+        ArgumentCaptor<SpecialLoads> captor = ArgumentCaptor.forClass(SpecialLoads.class);
+        verify(specialLoadsRepository).save(captor.capture());
+        SpecialLoads saved = captor.getValue();
+        assertEquals(4, saved.getQtdPontosVe());
+        assertEquals(new BigDecimal("20.72"), saved.getDemandaVeKva());
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage atualizando registro existente (upsert) deve manter integridade e avançar etapa 5")
+    void saveSpecialLoadsStage_atualizandoExistente_upsertSucesso() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(user);
+        project.setEtapaAtual(4);
+
+        SpecialLoads existente = new SpecialLoads();
+        existente.setId(50L);
+        existente.setProject(project);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(specialLoadsRepository.findByProjectId(1L)).thenReturn(Optional.of(existente));
+
+        ElectricVehicleLoadOutput veOut = new ElectricVehicleLoadOutput(
+                0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ZERO
+        );
+        FirePumpLoadOutput mbiOut = new FirePumpLoadOutput(
+                BigDecimal.ZERO, BigDecimal.ZERO, true, "N/A", "DIS-NOR-030"
+        );
+        when(specialLoadsCalculationEngine.calculate(any())).thenReturn(
+                new SpecialLoadsCalculationResult(
+                        veOut, mbiOut, BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, false, null, "Sem cargas"
+                )
+        );
+
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(0, null, null, null);
+
+        SpecialLoadsStageResponse response = projectService.saveSpecialLoadsStage(1L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(5, response.getEtapaAtual());
+        assertFalse(project.isPossuiVe());
+        assertFalse(project.isPossuiIncendio());
+        verify(specialLoadsRepository).save(existente);
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage para projeto de outro usuário deve lançar ForbiddenException")
+    void saveSpecialLoadsStage_outroUsuario_lancaForbidden() {
+        User outro = new User("Outro", "outro@teste.com", "senha");
+        outro.setId(99L);
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(outro);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest();
+
+        assertThrows(ForbiddenException.class, () -> projectService.saveSpecialLoadsStage(1L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage com vagas de VE sem potência deve lançar ValidationException")
+    void saveSpecialLoadsStage_vagasSemPotencia_lancaValidationException() {
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(4, null, null, null);
+        assertThrows(ValidationException.class, () -> projectService.saveSpecialLoadsStage(1L, request, 10L));
     }
 }
