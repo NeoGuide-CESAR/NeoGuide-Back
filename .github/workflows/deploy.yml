@@ -3,6 +3,8 @@ name: Deploy to VPS
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch: # Permite disparar o deploy manualmente pela interface do GitHub
 
 jobs:
@@ -29,6 +31,8 @@ jobs:
   deploy:
     name: Deploy to VPS
     needs: test
+    # Executa o deploy na VPS SOMENTE quando for push na main (ex: pós-merge), nunca durante a análise do Pull Request
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
