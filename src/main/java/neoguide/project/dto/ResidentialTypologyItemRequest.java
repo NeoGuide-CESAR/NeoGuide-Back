@@ -5,15 +5,19 @@ import java.math.BigDecimal;
 public class ResidentialTypologyItemRequest {
     private BigDecimal areaUtilM2;
     private Integer quantidadeUnidades;
-    private boolean isSmartStudio;
+    private Boolean isSmartStudio = false;
 
     public ResidentialTypologyItemRequest() {
     }
 
-    public ResidentialTypologyItemRequest(BigDecimal areaUtilM2, Integer quantidadeUnidades, boolean isSmartStudio) {
+    public ResidentialTypologyItemRequest(BigDecimal areaUtilM2, Integer quantidadeUnidades) {
+        this(areaUtilM2, quantidadeUnidades, false);
+    }
+
+    public ResidentialTypologyItemRequest(BigDecimal areaUtilM2, Integer quantidadeUnidades, Boolean isSmartStudio) {
         this.areaUtilM2 = areaUtilM2;
         this.quantidadeUnidades = quantidadeUnidades;
-        this.isSmartStudio = isSmartStudio;
+        this.isSmartStudio = isSmartStudio != null ? isSmartStudio : false;
     }
 
     public BigDecimal getAreaUtilM2() {
@@ -33,14 +37,14 @@ public class ResidentialTypologyItemRequest {
     }
 
     public boolean isSmartStudio() {
-        return isSmartStudio;
+        return Boolean.TRUE.equals(isSmartStudio);
     }
 
-    public boolean getIsSmartStudio() {
-        return isSmartStudio;
+    public void setSmartStudio(Boolean smartStudio) {
+        this.isSmartStudio = smartStudio != null ? smartStudio : false;
     }
 
-    public void setSmartStudio(boolean smartStudio) {
-        this.isSmartStudio = smartStudio;
+    public void setIsSmartStudio(Boolean isSmartStudio) {
+        this.isSmartStudio = isSmartStudio != null ? isSmartStudio : false;
     }
 }

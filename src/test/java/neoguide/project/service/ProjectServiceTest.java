@@ -1,5 +1,22 @@
 package neoguide.project.service;
 
+import neoguide.project.dto.SpecialLoadsStageRequest;
+import neoguide.project.dto.SpecialLoadsStageResponse;
+import neoguide.project.engine.SpecialLoadsCalculationEngine;
+import neoguide.project.engine.model.ElectricVehicleLoadOutput;
+import neoguide.project.engine.model.FirePumpLoadOutput;
+import neoguide.project.engine.model.SpecialLoadsCalculationResult;
+import neoguide.project.model.SpecialLoads;
+import neoguide.project.repository.SpecialLoadsRepository;
+
+import neoguide.project.dto.CommercialStageRequest;
+import neoguide.project.dto.CommercialStageResponse;
+import neoguide.project.dto.CommercialUnitItemRequest;
+import neoguide.project.engine.CommercialCalculationEngine;
+import neoguide.project.engine.model.CommercialCalculationResult;
+import neoguide.project.model.CommercialUnit;
+import neoguide.project.repository.CommercialUnitRepository;
+
 import neoguide.project.dto.CommonAreaLoadItemRequest;
 import neoguide.project.dto.CommonAreaStageRequest;
 import neoguide.project.dto.CommonAreaStageResponse;
@@ -75,6 +92,18 @@ class ProjectServiceTest {
 
     @Mock
     private CommonAreaCalculationEngine commonAreaCalculationEngine;
+
+    @Mock
+    private CommercialUnitRepository commercialUnitRepository;
+
+    @Mock
+    private CommercialCalculationEngine commercialCalculationEngine;
+
+    @Mock
+    private SpecialLoadsRepository specialLoadsRepository;
+
+    @Mock
+    private SpecialLoadsCalculationEngine specialLoadsCalculationEngine;
 
     @InjectMocks
     private ProjectService projectService;
@@ -872,5 +901,214 @@ class ProjectServiceTest {
         when(projectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> projectService.deleteProject(999L, 10L));
+    }
+
+    @Test
+    @DisplayName("saveCommercialStage com sucesso deve persistir unidades e atualizar projeto para etapa 4")
+    void saveCommercialStage_comSucesso_salvaUnidadesEAtualizaEtapa() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(user);
+        project.setEtapaAtual(2);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(commercialCalculationEngine.calcularDemandaComercial(any())).thenReturn(
+                new CommercialCalculationResult(
+                        new BigDecimal("25.00"),
+                        new BigDecimal("20.00"),
+                        new BigDecimal("5.00"),
+                        new BigDecimal("23.50"),
+                        new BigDecimal("0.92"),
+                        new BigDecimal("25.54"),
+                        List.of(),
+                        "Memória de cálculo de teste"
+                )
+        );
+
+        CommercialUnitItemRequest item = new CommercialUnitItemRequest("Loja 01", "Padaria", new BigDecimal("50.00"), new BigDecimal("25.00"));
+        CommercialStageRequest request = new CommercialStageRequest(List.of(item));
+
+        CommercialStageResponse response = projectService.saveCommercialStage(1L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(4, response.getEtapaAtual());
+        assertEquals(new BigDecimal("25.54"), response.getDemandaComercialDcKva());
+        assertTrue(project.isPossuiComercial());
+        verify(commercialUnitRepository).deleteByProjectId(1L);
+        verify(commercialUnitRepository).saveAll(anyList());
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("saveCommercialStage sem unidades deve zerar comercial e manter etapa 4")
+    void saveCommercialStage_semUnidades_zeraComercial() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(user);
+        project.setEtapaAtual(1);
+        project.setPossuiComercial(true);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(commercialCalculationEngine.calcularDemandaComercial(any())).thenReturn(
+                new CommercialCalculationResult(
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                        new BigDecimal("0.92"), BigDecimal.ZERO, List.of(), "Sem comercial"
+                )
+        );
+
+        CommercialStageRequest request = new CommercialStageRequest(List.of());
+
+        CommercialStageResponse response = projectService.saveCommercialStage(1L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(4, response.getEtapaAtual());
+        assertEquals(0, response.getTotalUnidades());
+        assertEquals(BigDecimal.ZERO.setScale(2), response.getDemandaComercialDcKva());
+        assertFalse(project.isPossuiComercial());
+        verify(commercialUnitRepository).deleteByProjectId(1L);
+        verify(commercialUnitRepository, never()).saveAll(anyList());
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("saveCommercialStage para projeto de outro usuário deve lançar ForbiddenException")
+    void saveCommercialStage_projetoOutroUsuario_lancaForbidden() {
+        User outro = new User("Outro", "outro@teste.com", "senha");
+        outro.setId(99L);
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(outro);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        CommercialStageRequest request = new CommercialStageRequest(List.of());
+
+        assertThrows(ForbiddenException.class, () -> projectService.saveCommercialStage(1L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("saveCommercialStage para projeto inexistente deve lançar ResourceNotFoundException")
+    void saveCommercialStage_projetoInexistente_lancaNotFound() {
+        when(projectRepository.findById(999L)).thenReturn(Optional.empty());
+        CommercialStageRequest request = new CommercialStageRequest(List.of());
+
+        assertThrows(ResourceNotFoundException.class, () -> projectService.saveCommercialStage(999L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("saveCommercialStage com potência inválida deve lançar ValidationException")
+    void saveCommercialStage_potenciaInvalida_lancaValidationException() {
+        CommercialUnitItemRequest item = new CommercialUnitItemRequest("Loja 01", "Padaria", new BigDecimal("50.00"), new BigDecimal("-5.00"));
+        CommercialStageRequest request = new CommercialStageRequest(List.of(item));
+
+        assertThrows(ValidationException.class, () -> projectService.saveCommercialStage(1L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage criando novo registro deve salvar SpecialLoads e avançar projeto para etapa 5")
+    void saveSpecialLoadsStage_novoRegistro_sucesso() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(user);
+        project.setEtapaAtual(3);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(specialLoadsRepository.findByProjectId(1L)).thenReturn(Optional.empty());
+
+        ElectricVehicleLoadOutput veOut = new ElectricVehicleLoadOutput(
+                4, new BigDecimal("7.40"), new BigDecimal("29.60"),
+                new BigDecimal("0.70"), new BigDecimal("1.00"), new BigDecimal("20.72")
+        );
+        FirePumpLoadOutput mbiOut = new FirePumpLoadOutput(
+                new BigDecimal("15.00"), new BigDecimal("14.40"), true, "ESTRELA_TRIANGULO", "DIS-NOR-030"
+        );
+        when(specialLoadsCalculationEngine.calculate(any())).thenReturn(
+                new SpecialLoadsCalculationResult(
+                        veOut, mbiOut, new BigDecimal("35.12"), new BigDecimal("14.40"),
+                        new BigDecimal("20.72"), false, null, "Auditoria teste"
+                )
+        );
+
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(4, new BigDecimal("7.40"), new BigDecimal("15.00"), null);
+
+        SpecialLoadsStageResponse response = projectService.saveSpecialLoadsStage(1L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(5, response.getEtapaAtual());
+        assertEquals(new BigDecimal("20.72"), response.getDemandaVeDveKva());
+        assertEquals(new BigDecimal("14.40"), response.getDemandaIncendioDmbiKva());
+        assertTrue(project.isPossuiVe());
+        assertTrue(project.isPossuiIncendio());
+
+        ArgumentCaptor<SpecialLoads> captor = ArgumentCaptor.forClass(SpecialLoads.class);
+        verify(specialLoadsRepository).save(captor.capture());
+        SpecialLoads saved = captor.getValue();
+        assertEquals(4, saved.getQtdPontosVe());
+        assertEquals(new BigDecimal("20.72"), saved.getDemandaVeKva());
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage atualizando registro existente (upsert) deve manter integridade e avançar etapa 5")
+    void saveSpecialLoadsStage_atualizandoExistente_upsertSucesso() {
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(user);
+        project.setEtapaAtual(4);
+
+        SpecialLoads existente = new SpecialLoads();
+        existente.setId(50L);
+        existente.setProject(project);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(specialLoadsRepository.findByProjectId(1L)).thenReturn(Optional.of(existente));
+
+        ElectricVehicleLoadOutput veOut = new ElectricVehicleLoadOutput(
+                0, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ZERO
+        );
+        FirePumpLoadOutput mbiOut = new FirePumpLoadOutput(
+                BigDecimal.ZERO, BigDecimal.ZERO, true, "N/A", "DIS-NOR-030"
+        );
+        when(specialLoadsCalculationEngine.calculate(any())).thenReturn(
+                new SpecialLoadsCalculationResult(
+                        veOut, mbiOut, BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, false, null, "Sem cargas"
+                )
+        );
+
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(0, null, null, null);
+
+        SpecialLoadsStageResponse response = projectService.saveSpecialLoadsStage(1L, request, 10L);
+
+        assertNotNull(response);
+        assertTrue(response.isSucesso());
+        assertEquals(5, response.getEtapaAtual());
+        assertFalse(project.isPossuiVe());
+        assertFalse(project.isPossuiIncendio());
+        verify(specialLoadsRepository).save(existente);
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage para projeto de outro usuário deve lançar ForbiddenException")
+    void saveSpecialLoadsStage_outroUsuario_lancaForbidden() {
+        User outro = new User("Outro", "outro@teste.com", "senha");
+        outro.setId(99L);
+        Project project = new Project();
+        project.setId(1L);
+        project.setUser(outro);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest();
+
+        assertThrows(ForbiddenException.class, () -> projectService.saveSpecialLoadsStage(1L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("saveSpecialLoadsStage com vagas de VE sem potência deve lançar ValidationException")
+    void saveSpecialLoadsStage_vagasSemPotencia_lancaValidationException() {
+        SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(4, null, null, null);
+        assertThrows(ValidationException.class, () -> projectService.saveSpecialLoadsStage(1L, request, 10L));
     }
 }

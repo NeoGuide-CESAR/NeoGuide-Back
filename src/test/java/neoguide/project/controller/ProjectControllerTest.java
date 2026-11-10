@@ -1,5 +1,8 @@
 package neoguide.project.controller;
 
+import neoguide.project.repository.CommercialUnitRepository;
+import neoguide.project.repository.SpecialLoadsRepository;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.dto.CommonAreaLoadItemRequest;
 import neoguide.project.dto.CommonAreaStageRequest;
@@ -62,6 +65,11 @@ class ProjectControllerTest {
 
     @Autowired
     private CommonAreaLoadRepository commonAreaLoadRepository;
+    @Autowired
+    private CommercialUnitRepository commercialUnitRepository;
+
+    @Autowired
+    private SpecialLoadsRepository specialLoadsRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -77,6 +85,8 @@ class ProjectControllerTest {
     @BeforeEach
     void setUp() {
         commonAreaLoadRepository.deleteAll();
+        specialLoadsRepository.deleteAll();
+        commercialUnitRepository.deleteAll();
         residentialTypologyRepository.deleteAll();
         projectRepository.deleteAll();
         userRepository.deleteAll();
