@@ -31,7 +31,11 @@ public class CacheConfig {
                 "catalogoCargasOcupacao",
                 "catalogo_fatores_piscina",
                 "catalogoFatoresPiscina",
-                "catalogoBombasPiscina"
+                "catalogoBombasPiscina",
+                // Caches de motores monofásicos, partidas e tomadas mínimas (US-16)
+                "catalogoMotoresMonofasicos",
+                "catalogoDispositivosPartida",
+                "catalogoTomadasMinimas"
         );
     }
 }
