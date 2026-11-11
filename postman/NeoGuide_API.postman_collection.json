@@ -2,7 +2,7 @@
     "info":  {
                  "_postman_id":  "7f8b9c0d-1e2f-4a3b-9c8d-7e6f5a4b3c2d",
                  "name":  "NeoGuide API",
-                 "description":  "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 04).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP \u0026 Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica com alteração de status para `CANCELADO`.\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n\n7. **Utilitários (`/test`)**:\n   - Endpoint de verificação de conectividade e sanidade da API.\n   - PUT /api/v1/projects/{id}/etapa-comercial (US-12): Cálculo e persistência das unidades comerciais ($ kVA) com escalonamento regressivo.\n   - PUT /api/v1/projects/{id}/etapa-cargas-especiais (US-13, US-14): Cálculo e persistência de recarga de VE ({ve}$) e motobomba de incêndio ({mbi}$).\n",
+                 "description":  "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 05).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP \u0026 Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica com alteração de status para `CANCELADO`.\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n   - `PUT /api/v1/projects/{id}/etapa-comercial` (US-12): Cálculo e persistência das unidades comerciais ($D_c$ kVA) com escalonamento regressivo.\n   - `PUT /api/v1/projects/{id}/etapa-cargas-especiais` (US-13, US-14): Cálculo e persistência de recarga de VE ($D_{ve}$) e motobomba de incêndio ($D_{mbi}$).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n   - **6.3 Especialidades, VE, Ocupação e Motores Monofásicos (DIS-NOR-030 — US-15 / US-16)**: Fatores de Recarga VE (Quadro 33), Cargas Mínimas por Ocupação (Tabela 22), Bombas de Piscina (Tabela 16), Motores Monofásicos (Tabela 18), Dispositivos de Partida (Tabela 17) e Tomadas Mínimas Residenciais (Tabela 5).\n\n7. **Utilitários (`/test`)**:\n   - Endpoint de verificação de conectividade e sanidade da API.\n",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -1560,6 +1560,245 @@
                                                                                     }
                                                                      }
                                                                  ]
+                                                   }
+                                               ]
+                                  },
+                                  {
+                                      "name":  "6.3 Especialidades, VE, Ocupação e Motores Monofásicos (DIS-NOR-030 — US-15 / US-16)",
+                                      "item":  [
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/fatores-recarga-ve - Fatores de Simultaneidade VE (Quadro 33)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/fatores-recarga-ve",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "fatores-recarga-ve" ]
+                                                                               },
+                                                                       "description":  "Retorna os fatores de simultaneidade para pontos de recarga de Veículos Elétricos (VE) conforme Quadro 33 da DIS-NOR-030 / DIS-NOR-053."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna fatores de recarga VE\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"fatorSimultaneidade\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Fatores VE",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"maxVagas\":1,\"fatorSimultaneidade\":1.00,\"faixaDescricao\":\"Até 1 ponto\",\"normaOrigem\":\"DIS-NOR-053 / DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/cargas-minimas-ocupacao - Cargas Mínimas por Ocupação (Tabela 22)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/cargas-minimas-ocupacao",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "cargas-minimas-ocupacao" ]
+                                                                               },
+                                                                       "description":  "Retorna as densidades mínimas de carga por tipo de ocupação comercial e áreas de serviço conforme Tabela 22 da DIS-NOR-030."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna cargas mínimas por ocupação\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"cargaMinimaWm2\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Cargas por Ocupação",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"ocupacao\":\"ESCRITORIOS\",\"descricao\":\"Escritórios e Salas Comerciais\",\"cargaMinimaWm2\":30.00,\"vitrineWMetro\":null,\"fatorDemandaIlum\":1.00,\"fatorDemandaTug\":1.00,\"fatorPotencia\":0.92,\"regraNormativa\":\"Tabela 22\",\"normaOrigem\":\"DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/fatores-bombas-piscina - Fatores de Demanda Bombas de Piscina (Tabela 16)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/fatores-bombas-piscina",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "fatores-bombas-piscina" ]
+                                                                               },
+                                                                       "description":  "Retorna os fatores de demanda para bombas de piscina por quantidade de equipamentos conforme Tabela 16 da DIS-NOR-030."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna fatores de bombas de piscina\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"fatorDemanda\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Bombas de Piscina",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"quantidadeBombas\":1,\"fatorDemanda\":1.00,\"fatorPotencia\":0.85,\"normaOrigem\":\"DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/motores-monofasicos - Motores Monofásicos Padrão (Tabela 18)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/motores-monofasicos",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "motores-monofasicos" ]
+                                                                               },
+                                                                       "description":  "Retorna a tabela normativa de motores de indução monofásicos com corrente em 110V/220V e fator de potência conforme Tabela 18 da DIS-NOR-030."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna motores monofásicos\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"potenciaCv\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Motores Monofásicos",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"potenciaCv\":\"1/4\",\"potenciaCvNumerica\":0.25,\"potenciaW\":184.00,\"potenciaVa\":280.00,\"corrente110vA\":2.55,\"corrente220vA\":1.27,\"fatorPotencia\":0.66,\"normaOrigem\":\"DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/dispositivos-partida-motores - Dispositivos de Partida (Tabela 17)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/dispositivos-partida-motores",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "dispositivos-partida-motores" ]
+                                                                               },
+                                                                       "description":  "Retorna as faixas de potência permitidas por tipo de dispositivo de partida de motores (Direta, Estrela-Triângulo, Compensadora, Soft Starter) conforme Tabela 17 da DIS-NOR-030."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna dispositivos de partida\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"tipoPartida\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Dispositivos de Partida",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"tipoPartida\":\"DIRETA\",\"minCv220v\":null,\"maxCv220v\":5.00,\"minCv380v\":null,\"maxCv380v\":7.50,\"descricao\":\"Partida Direta\",\"normaOrigem\":\"DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/tomadas-minimas-residenciais - Tomadas Mínimas Residenciais (Tabela 5)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/tomadas-minimas-residenciais",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "tomadas-minimas-residenciais" ]
+                                                                               },
+                                                                       "description":  "Retorna a quantidade mínima normativa de tomadas de uso geral (TUG 100W e 600W) por faixa de área privativa residencial conforme Tabela 5 da DIS-NOR-030."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna tomadas mínimas residenciais\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"minTug100w\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Tomadas Mínimas Residenciais",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"minAreaM2\":0.00,\"maxAreaM2\":40.00,\"faixaDescricao\":\"Até 40 m²\",\"minTug100w\":6,\"minTug600w\":2,\"normaOrigem\":\"DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
                                                    }
                                                ]
                                   }
