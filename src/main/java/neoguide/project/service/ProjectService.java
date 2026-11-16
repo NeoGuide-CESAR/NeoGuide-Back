@@ -339,6 +339,12 @@ public class ProjectService {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
 
+        // Regra D1 (padrão do projeto): só projeto em rascunho pode ser excluído.
+        if (project.getStatus() != ProjectStatus.RASCUNHO) {
+            throw new neoguide.project.exception.ConflictException(
+                    "Somente projetos em rascunho podem ser excluídos. Situação atual: " + project.getStatus().getDescricao());
+        }
+
         project.setAtivo(false);
         project.setUpdatedAt(LocalDateTime.now());
         projectRepository.save(project);
@@ -468,7 +474,8 @@ public class ProjectService {
         return new ResidentialStageResponse(
                 true,
                 project.getId(),
-                calcResult.getDemandaFinalDrf()
+                // Arredondamento apenas na apresentação (2 casas); o cálculo interno não arredonda (B-MT-07).
+                calcResult.getDemandaFinalDrf().setScale(2, java.math.RoundingMode.HALF_UP)
         );
     }
 

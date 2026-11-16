@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
+    /** Código de erro para sessão ausente/expirada (contrato B-SEC-04). */
+    public static final String CODIGO_SESSAO_EXPIRADA = "sessao_expirada";
+
     @Override
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
@@ -22,10 +25,12 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setCharacterEncoding("UTF-8");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
+        // "codigo" permite ao front distinguir a sessão expirada (Estado B da tela 11) de outros 401.
         String json = String.format(
-                "{\"timestamp\":\"%s\",\"status\":%d,\"message\":\"%s\",\"errors\":{}}",
+                "{\"timestamp\":\"%s\",\"status\":%d,\"codigo\":\"%s\",\"message\":\"%s\",\"errors\":{}}",
                 LocalDateTime.now(),
                 HttpServletResponse.SC_UNAUTHORIZED,
+                CODIGO_SESSAO_EXPIRADA,
                 "Acesso não autorizado. Token ausente ou inválido."
         );
 

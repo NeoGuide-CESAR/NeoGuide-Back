@@ -21,6 +21,9 @@ import java.util.Optional;
 @Service
 public class AuthService {
 
+    /** Mensagem genérica de falha de login (tela 11): não indica se o e-mail ou a senha está errado. */
+    public static final String MENSAGEM_CREDENCIAIS_INVALIDAS = "E-mail ou senha incorretos.";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -75,10 +78,10 @@ public class AuthService {
         User user = userRepository.findByEmailOrCpfCnpj(login, searchSanitized)
                 .or(() -> (sanitized != null && !sanitized.isBlank()) ? userRepository.findByCpfCnpj(sanitized) : Optional.empty())
                 .or(() -> login.contains("@") ? userRepository.findByEmail(login.toLowerCase()) : Optional.empty())
-                .orElseThrow(() -> new UnauthorizedException("E-mail ou senha inválidos"));
+                .orElseThrow(() -> new UnauthorizedException(MENSAGEM_CREDENCIAIS_INVALIDAS));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new UnauthorizedException("E-mail ou senha inválidos");
+            throw new UnauthorizedException(MENSAGEM_CREDENCIAIS_INVALIDAS);
         }
 
         String token = jwtService.generateToken(user);

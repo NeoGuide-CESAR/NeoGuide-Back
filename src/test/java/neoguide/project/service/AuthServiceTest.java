@@ -215,7 +215,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("SenhaIncorreta@123", sampleUser.getPassword())).thenReturn(false);
 
         UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> authService.login(request));
-        assertEquals("E-mail ou senha inválidos", ex.getMessage());
+        assertEquals("E-mail ou senha incorretos.", ex.getMessage());
 
         verify(jwtService, never()).generateToken(any());
     }
@@ -230,7 +230,7 @@ class AuthServiceTest {
         when(userRepository.findByEmailOrCpfCnpj("inexistente@empresa.com", "inexistente@empresa.com")).thenReturn(Optional.empty());
 
         UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> authService.login(request));
-        assertEquals("E-mail ou senha inválidos", ex.getMessage());
+        assertEquals("E-mail ou senha incorretos.", ex.getMessage());
 
         verify(passwordEncoder, never()).matches(anyString(), anyString());
         verify(jwtService, never()).generateToken(any());

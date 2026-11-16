@@ -744,6 +744,40 @@ class ProjectServiceTest {
     }
 
     @Test
+    @DisplayName("B-EP-10 (D1): projeto EM_ANALISE não pode ser excluído (somente RASCUNHO)")
+    void deleteProject_emAnalise_lancaConflito() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setAtivo(true);
+        proj.setStatus(neoguide.project.model.ProjectStatus.EM_ANALISE);
+
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        assertThrows(neoguide.project.exception.ConflictException.class, () -> projectService.deleteProject(100L, 10L));
+        assertTrue(proj.isAtivo());
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("B-EP-10 (D1): projeto APROVADO e REPROVADO também não podem ser excluídos")
+    void deleteProject_aprovadoOuReprovado_lancaConflito() {
+        for (neoguide.project.model.ProjectStatus status : List.of(
+                neoguide.project.model.ProjectStatus.APROVADO,
+                neoguide.project.model.ProjectStatus.REPROVADO)) {
+            Project proj = new Project();
+            proj.setId(100L);
+            proj.setUser(user);
+            proj.setAtivo(true);
+            proj.setStatus(status);
+            when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+            assertThrows(neoguide.project.exception.ConflictException.class, () -> projectService.deleteProject(100L, 10L));
+            assertTrue(proj.isAtivo());
+        }
+    }
+
+    @Test
     @DisplayName("Deve salvar etapa de áreas comuns com sucesso para payload híbrido")
     void deveSalvarEtapaAreaComumComSucesso_PayloadHibrido() {
         Project proj = new Project();
