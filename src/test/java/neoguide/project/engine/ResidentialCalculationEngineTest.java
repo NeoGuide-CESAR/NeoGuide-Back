@@ -11,13 +11,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("ResidentialCalculationEngine — Motor de Cálculo da Demanda Residencial (DIS-NOR-053)")
+@DisplayName("ResidentialCalculationEngine — Motor de Cálculo da Demanda Residencial (DIS-NOR-053 Rev. 06)")
 class ResidentialCalculationEngineTest {
 
     private ResidentialCalculationEngine engine;
@@ -27,12 +28,17 @@ class ResidentialCalculationEngineTest {
         engine = new ResidentialCalculationEngine();
     }
 
+    /** Apresentação com 2 casas (regra: arredondar só na apresentação, B-MT-07). */
+    private static BigDecimal apresentado(BigDecimal valor) {
+        return valor.setScale(2, RoundingMode.HALF_UP);
+    }
+
     @Nested
     @DisplayName("1. Caso Canônico do Memorial Descritivo (100 unidades)")
     class MemorialCanonicoTests {
 
         @Test
-        @DisplayName("Deve calcular com precisão exata o memorial de 100 unidades (50x63m² e 50x68m²)")
+        @DisplayName("Deve calcular o memorial de 100 unidades (50x63m² e 50x68m²) sem arredondamento intermediário")
         void testMemorialCanonico100Apartamentos() {
             // GIVEN: 50 unidades de 63m² (Di=1.47 kVA) + 50 unidades de 68m² (Di=1.57 kVA)
             var tipoA = new ResidentialTypologyItem("Tipo A - 63m²", new BigDecimal("63.00"), 50, new BigDecimal("1.47"));
@@ -44,16 +50,19 @@ class ResidentialCalculationEngineTest {
             ResidentialCalculationResult result = engine.calculate(input);
 
             // THEN
-            assertThat(result).isNotNull();
             assertThat(result.getTotalApartamentos()).isEqualTo(100);
             assertThat(result.getDemandaBrutaDr()).isEqualByComparingTo("152.00");
             assertThat(result.getFatorCoincidenciaFc()).isEqualByComparingTo("0.6823");
-            assertThat(result.getDemandaProvisoriaDtr()).isEqualByComparingTo("103.71");
+            // Valores brutos: Dtr = 152.00 * 0.6823 = 103.7096; Drf = 103.7096 * 1.10 = 114.08056
+            assertThat(result.getDemandaProvisoriaDtr()).isEqualByComparingTo("103.7096");
             assertThat(result.getFatorSegurancaFr()).isEqualByComparingTo("1.10");
-            assertThat(result.getDemandaFinalDrf()).isEqualByComparingTo("114.08");
+            assertThat(result.getDemandaFinalDrf()).isEqualByComparingTo("114.08056");
+            // Apresentação (2 casas)
+            assertThat(apresentado(result.getDemandaProvisoriaDtr())).isEqualByComparingTo("103.71");
+            assertThat(apresentado(result.getDemandaFinalDrf())).isEqualByComparingTo("114.08");
             assertThat(result.isSmartStudio()).isFalse();
 
-            // Verificação dos subtotais analíticos das tipologias
+            // Subtotais analíticos das tipologias
             assertThat(result.getTipologias()).hasSize(2);
 
             var outA = result.getTipologias().get(0);
@@ -81,9 +90,9 @@ class ResidentialCalculationEngineTest {
 
             assertThat(result.getDemandaBrutaDr()).isEqualByComparingTo("152.00");
             assertThat(result.getFatorCoincidenciaFc()).isEqualByComparingTo("0.6823");
-            assertThat(result.getDemandaProvisoriaDtr()).isEqualByComparingTo("103.71");
+            assertThat(apresentado(result.getDemandaProvisoriaDtr())).isEqualByComparingTo("103.71");
             assertThat(result.getFatorSegurancaFr()).isEqualByComparingTo("1.10");
-            assertThat(result.getDemandaFinalDrf()).isEqualByComparingTo("114.08");
+            assertThat(apresentado(result.getDemandaFinalDrf())).isEqualByComparingTo("114.08");
         }
     }
 
@@ -92,9 +101,9 @@ class ResidentialCalculationEngineTest {
     class SmartStudiosTests {
 
         @Test
-        @DisplayName("Deve fixar Fc = 0.9000 para Smart Studios com N > 15 (ex.: 20 unidades de 35m²)")
+        @DisplayName("Deve fixar Fc = 0.9000 para Smart Studios com N > 15 (ex.: 20 unidades de 35m², Di = 1.00 pelo Quadro 35)")
         void testSmartStudiosAcimaDe15Unidades() {
-            // GIVEN: 20 unidades x 35m² (Di = 1.20 kVA), isSmartStudio = true
+            // GIVEN: 20 unidades x 35m² (Di = 1.00 kVA, Quadro 35 "Até 40 m²"), isSmartStudio = true
             var studio = new ResidentialTypologyItem("Studio", new BigDecimal("35.00"), 20);
 
             // WHEN
@@ -103,22 +112,22 @@ class ResidentialCalculationEngineTest {
             // THEN
             assertThat(result.getTotalApartamentos()).isEqualTo(20);
             assertThat(result.isSmartStudio()).isTrue();
-            // Dr = 20 * 1.20 = 24.00 kVA
-            assertThat(result.getDemandaBrutaDr()).isEqualByComparingTo("24.00");
-            // Fc fixado em 0.9000 (Item 6.25) ao invés do valor de tabela 0.8560
+            // Dr = 20 * 1.00 = 20.00 kVA
+            assertThat(result.getDemandaBrutaDr()).isEqualByComparingTo("20.00");
+            // Fc fixado em 0.9000 (Item 6.25) ao invés do valor de tabela 0.8720 (N = 20)
             assertThat(result.getFatorCoincidenciaFc()).isEqualByComparingTo("0.9000");
-            // Dtr = 24.00 * 0.9000 = 21.60 kVA
-            assertThat(result.getDemandaProvisoriaDtr()).isEqualByComparingTo("21.60");
+            // Dtr = 20.00 * 0.9000 = 18.00 kVA
+            assertThat(result.getDemandaProvisoriaDtr()).isEqualByComparingTo("18.00");
             // Dr <= 25.00 => Fr = 1.50
             assertThat(result.getFatorSegurancaFr()).isEqualByComparingTo("1.50");
-            // Drf = 21.60 * 1.50 = 32.40 kVA
-            assertThat(result.getDemandaFinalDrf()).isEqualByComparingTo("32.40");
+            // Drf = 18.00 * 1.50 = 27.00 kVA
+            assertThat(result.getDemandaFinalDrf()).isEqualByComparingTo("27.00");
         }
 
         @Test
         @DisplayName("Deve manter curva convencional do Quadro 36 para Smart Studios com N <= 15 (ex.: 10 unidades)")
         void testSmartStudiosAte15Unidades() {
-            // GIVEN: 10 unidades x 35m² (Di = 1.20 kVA), isSmartStudio = true
+            // GIVEN: 10 unidades x 35m², isSmartStudio = true
             var studio = new ResidentialTypologyItem("Studio", new BigDecimal("35.00"), 10);
 
             // WHEN
@@ -127,7 +136,7 @@ class ResidentialCalculationEngineTest {
             // THEN
             assertThat(result.getTotalApartamentos()).isEqualTo(10);
             assertThat(result.isSmartStudio()).isTrue();
-            // Para N = 10, tabela regular prescreve Fc = 0.9640
+            // Para N = 10, o Quadro 36 prescreve Fc = 0.9640
             assertThat(result.getFatorCoincidenciaFc()).isEqualByComparingTo("0.9640");
         }
 
@@ -150,7 +159,7 @@ class ResidentialCalculationEngineTest {
             ResidentialCalculationResult result = engine.calculate(List.of(itemNormal));
 
             assertThat(result.isSmartStudio()).isFalse();
-            assertThat(result.getFatorCoincidenciaFc()).isEqualByComparingTo("0.8560");
+            assertThat(result.getFatorCoincidenciaFc()).isEqualByComparingTo("0.8720");
         }
     }
 
@@ -180,91 +189,96 @@ class ResidentialCalculationEngineTest {
     }
 
     @Nested
-    @DisplayName("4. Quadro 35 — Inferência da Demanda Unitária (Di) por Área Útil")
+    @DisplayName("4. Quadro 35 — Inferência da Demanda Unitária (Di) por Área Útil (valores da norma)")
     class DemandaUnitariaQuadro35Tests {
 
         @ParameterizedTest(name = "Área = {0} m² deve resultar em Di = {1} kVA")
         @CsvSource({
-                "25.00,  1.20",
-                "40.00,  1.20",
-                "40.01,  1.28",
-                "45.00,  1.28",
-                "45.01,  1.35",
-                "50.00,  1.35",
-                "50.01,  1.40",
-                "55.00,  1.40",
-                "55.01,  1.43",
-                "60.00,  1.43",
-                "60.01,  1.47",
-                "63.00,  1.47",
-                "65.00,  1.47",
-                "65.01,  1.57",
-                "68.00,  1.57",
-                "70.00,  1.57",
-                "70.01,  1.80",
-                "80.00,  1.80",
-                "80.01,  1.95",
-                "90.00,  1.95",
-                "90.01,  2.15",
-                "100.00, 2.15",
-                "100.01, 2.45",
-                "110.00, 2.45",
-                "120.00, 2.45",
-                "120.01, 2.80",
-                "140.00, 2.80",
-                "140.01, 3.30",
-                "170.00, 3.30",
-                "170.01, 3.90",
-                "200.00, 3.90",
-                "200.01, 5.40",
-                "300.00, 5.40",
-                "300.01, 7.20",
-                "500.00, 7.20"
+                "25.00,   1.00",
+                "40.00,   1.00",
+                "40.01,   1.05",
+                "45.00,   1.05",
+                "45.01,   1.16",
+                "50.00,   1.16",
+                "50.01,   1.26",
+                "55.00,   1.26",
+                "55.01,   1.36",
+                "60.00,   1.36",
+                "60.01,   1.47",
+                "63.00,   1.47",
+                "65.00,   1.47",
+                "65.01,   1.57",
+                "68.00,   1.57",
+                "70.00,   1.57",
+                "70.01,   1.67",
+                "80.00,   1.76",
+                "80.01,   1.86",
+                "90.00,   1.96",
+                "90.01,   2.06",
+                "100.00,  2.16",
+                "100.01,  2.35",
+                "110.00,  2.35",
+                "120.00,  2.54",
+                "120.01,  2.73",
+                "140.00,  2.91",
+                "140.01,  3.06",
+                "170.00,  3.47",
+                "170.01,  3.65",
+                "200.00,  4.01",
+                "200.01,  4.36",
+                "300.00,  5.76",
+                "300.01,  6.61",
+                "500.00,  9.10",
+                "500.01,  9.91",
+                "1000.00, 16.93"
         })
         void testInferenciaAutomaticaDiQuadro35(String areaString, String diEsperado) {
             BigDecimal area = new BigDecimal(areaString);
             BigDecimal di = engine.resolveDemandaUnitaria(area);
             assertThat(di).isEqualByComparingTo(diEsperado);
         }
+
+        @Test
+        @DisplayName("Área acima de 1000 m² não é tabelada e deve ser rejeitada")
+        void testAreaAcimaDoQuadro() {
+            assertThatThrownBy(() -> engine.resolveDemandaUnitaria(new BigDecimal("1000.01")))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
     }
 
     @Nested
-    @DisplayName("5. Quadro 36 — Interpolação e Pontos Discretos do Fator de Coincidência (Fc)")
+    @DisplayName("5. Quadro 36 — Tabela discreta do Fator de Coincidência (Fc), sem interpolação")
     class FatorCoincidenciaQuadro36Tests {
 
-        @Test
-        @DisplayName("Deve retornar valores exatos dos nós tabelados")
-        void testPontosExatosTabelados() {
-            assertThat(engine.resolveFatorCoincidencia(10, false)).isEqualByComparingTo("0.9640");
-            assertThat(engine.resolveFatorCoincidencia(15, false)).isEqualByComparingTo("0.9027");
-            assertThat(engine.resolveFatorCoincidencia(20, false)).isEqualByComparingTo("0.8560");
-            assertThat(engine.resolveFatorCoincidencia(25, false)).isEqualByComparingTo("0.8184");
-            assertThat(engine.resolveFatorCoincidencia(30, false)).isEqualByComparingTo("0.7827");
-            assertThat(engine.resolveFatorCoincidencia(35, false)).isEqualByComparingTo("0.7580");
-            assertThat(engine.resolveFatorCoincidencia(40, false)).isEqualByComparingTo("0.7380");
-            assertThat(engine.resolveFatorCoincidencia(45, false)).isEqualByComparingTo("0.7231");
-            assertThat(engine.resolveFatorCoincidencia(50, false)).isEqualByComparingTo("0.7080");
-            assertThat(engine.resolveFatorCoincidencia(55, false)).isEqualByComparingTo("0.6935");
-            assertThat(engine.resolveFatorCoincidencia(60, false)).isEqualByComparingTo("0.6823");
-            assertThat(engine.resolveFatorCoincidencia(120, false)).isEqualByComparingTo("0.6823");
+        @ParameterizedTest(name = "N = {0} apartamentos deve resultar em Fc = {1}")
+        @CsvSource({
+                "1,   1.0000",
+                "2,   0.9800",
+                "5,   0.9680",
+                "8,   0.9650",
+                "10,  0.9640",
+                "15,  0.9027",
+                "20,  0.8720",
+                "22,  0.8477",
+                "25,  0.8184",
+                "30,  0.7827",
+                "35,  0.7571",
+                "40,  0.7380",
+                "45,  0.7231",
+                "50,  0.7068",
+                "55,  0.6935",
+                "59,  0.6844",
+                "60,  0.6823",
+                "120, 0.6823"
+        })
+        void testTabelaDiscretaQuadro36(int n, String fcEsperado) {
+            assertThat(engine.resolveFatorCoincidencia(n, false)).isEqualByComparingTo(fcEsperado);
         }
 
         @Test
-        @DisplayName("Deve interpolar linearmente para N entre 1 e 10 (1=1.0000 e 10=0.9640)")
-        void testInterpolacaoAbaixoDe10() {
-            assertThat(engine.resolveFatorCoincidencia(1, false)).isEqualByComparingTo("1.0000");
-            // Para N = 5: deltaN = 4, step = 9, deltaFc = 0.9640 - 1.0000 = -0.0360
-            // Fc = 1.0000 + (4 * -0.0360 / 9) = 1.0000 - 0.0160 = 0.9840
-            assertThat(engine.resolveFatorCoincidencia(5, false)).isEqualByComparingTo("0.9840");
-        }
-
-        @Test
-        @DisplayName("Deve interpolar linearmente para nós intermediários (ex.: N = 22)")
-        void testInterpolacaoNosIntermediarios() {
-            // N1 = 20 (0.8560), N2 = 25 (0.8184)
-            // step = 5, deltaN = 2, deltaFc = -0.0376
-            // Fc = 0.8560 + (2 * -0.0376 / 5) = 0.8560 - 0.01504 = 0.84096 => 0.8410
-            assertThat(engine.resolveFatorCoincidencia(22, false)).isEqualByComparingTo("0.8410");
+        @DisplayName("N não tabelado não é interpolado: cada N tem o seu valor (ex.: 21 = 0.8590, nunca a média de 20 e 22)")
+        void testSemInterpolacao() {
+            assertThat(engine.resolveFatorCoincidencia(21, false)).isEqualByComparingTo("0.8590");
         }
     }
 

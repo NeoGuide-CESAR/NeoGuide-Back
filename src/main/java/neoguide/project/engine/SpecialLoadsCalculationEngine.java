@@ -27,21 +27,22 @@ public class SpecialLoadsCalculationEngine {
     private static final NavigableMap<BigDecimal, MotorEntry> TABELA_19_MOTORES = new TreeMap<>();
 
     static {
-        TABELA_19_MOTORES.put(new BigDecimal("0.50"), new MotorEntry(new BigDecimal("0.75"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("0.75"), new MotorEntry(new BigDecimal("1.03"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("1.00"), new MotorEntry(new BigDecimal("1.31"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("1.50"), new MotorEntry(new BigDecimal("1.86"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("2.00"), new MotorEntry(new BigDecimal("2.36"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("3.00"), new MotorEntry(new BigDecimal("3.37"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("4.00"), new MotorEntry(new BigDecimal("4.32"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("5.00"), new MotorEntry(new BigDecimal("5.27"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("7.50"), new MotorEntry(new BigDecimal("7.64"), "DIRETA"));
-        TABELA_19_MOTORES.put(new BigDecimal("10.00"), new MotorEntry(new BigDecimal("9.95"), "ESTRELA_TRIANGULO"));
-        TABELA_19_MOTORES.put(new BigDecimal("12.50"), new MotorEntry(new BigDecimal("12.14"), "ESTRELA_TRIANGULO"));
-        TABELA_19_MOTORES.put(new BigDecimal("15.00"), new MotorEntry(new BigDecimal("14.40"), "ESTRELA_TRIANGULO"));
-        TABELA_19_MOTORES.put(new BigDecimal("20.00"), new MotorEntry(new BigDecimal("19.10"), "ESTRELA_TRIANGULO"));
-        TABELA_19_MOTORES.put(new BigDecimal("25.00"), new MotorEntry(new BigDecimal("23.50"), "COMPENSADORA"));
-        TABELA_19_MOTORES.put(new BigDecimal("30.00"), new MotorEntry(new BigDecimal("28.00"), "SOFT_STARTER"));
+        // kVA: DIS-NOR-030 Rev. 07, Tabela 19 (coluna VA). Tipo de partida: mantido do modelo anterior (não consta na Tabela 19).
+        TABELA_19_MOTORES.put(new BigDecimal("0.50"), new MotorEntry(new BigDecimal("0.87"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("0.75"), new MotorEntry(new BigDecimal("1.26"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("1.00"), new MotorEntry(new BigDecimal("1.52"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("1.50"), new MotorEntry(new BigDecimal("2.17"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("2.00"), new MotorEntry(new BigDecimal("2.70"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("3.00"), new MotorEntry(new BigDecimal("4.04"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("4.00"), new MotorEntry(new BigDecimal("5.03"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("5.00"), new MotorEntry(new BigDecimal("6.02"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("7.50"), new MotorEntry(new BigDecimal("8.65"), "DIRETA"));
+        TABELA_19_MOTORES.put(new BigDecimal("10.00"), new MotorEntry(new BigDecimal("11.54"), "ESTRELA_TRIANGULO"));
+        TABELA_19_MOTORES.put(new BigDecimal("12.50"), new MotorEntry(new BigDecimal("14.09"), "ESTRELA_TRIANGULO"));
+        TABELA_19_MOTORES.put(new BigDecimal("15.00"), new MotorEntry(new BigDecimal("16.65"), "ESTRELA_TRIANGULO"));
+        TABELA_19_MOTORES.put(new BigDecimal("20.00"), new MotorEntry(new BigDecimal("22.10"), "ESTRELA_TRIANGULO"));
+        TABELA_19_MOTORES.put(new BigDecimal("25.00"), new MotorEntry(new BigDecimal("25.83"), "COMPENSADORA"));
+        TABELA_19_MOTORES.put(new BigDecimal("30.00"), new MotorEntry(new BigDecimal("30.52"), "SOFT_STARTER"));
     }
 
     public SpecialLoadsCalculationResult calculate(SpecialLoadsCalculationInput input) {
@@ -144,16 +145,13 @@ public class SpecialLoadsCalculationEngine {
         );
     }
 
+    /**
+     * Fator de simultaneidade de recarga de VE (DIS-NOR-053 Rev. 06, Quadro 33).
+     * Sem interpolação: 1–10 → 1,00; 11–20 → 0,86; … ; acima de 100 → 0,60.
+     */
     public BigDecimal resolverFatorSimultaneidadeVe(int vagas) {
         if (vagas <= 0) return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        if (vagas == 1) return new BigDecimal("1.00");
-        if (vagas == 2) return new BigDecimal("0.85");
-        if (vagas == 3) return new BigDecimal("0.75");
-        if (vagas <= 8) return new BigDecimal("0.70");
-        if (vagas <= 12) return new BigDecimal("0.60");
-        if (vagas <= 20) return new BigDecimal("0.50");
-        if (vagas <= 30) return new BigDecimal("0.45");
-        return new BigDecimal("0.35");
+        return neoguide.project.engine.normativo.TabelasNormativas.fatorVe(vagas).setScale(2, RoundingMode.HALF_UP);
     }
 
     public FirePumpLoadOutput calcularMotobombaIncendio(FirePumpLoadInput input) {
@@ -205,39 +203,15 @@ public class SpecialLoadsCalculationEngine {
         );
     }
 
+    /**
+     * Demanda aparente (kVA) pela Tabela 19 (DIS-NOR-030 Rev. 07, coluna VA).
+     * Potência tabelada: valor da norma, sem interpolação. Entre linhas: linha imediatamente acima (conservador).
+     */
     public BigDecimal resolverDemandaTabela19(BigDecimal cv) {
         if (cv == null || cv.compareTo(BigDecimal.ZERO) <= 0) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
-
-        if (TABELA_19_MOTORES.containsKey(cv)) {
-            return TABELA_19_MOTORES.get(cv).kva().setScale(2, RoundingMode.HALF_UP);
-        }
-
-        BigDecimal menor = TABELA_19_MOTORES.firstKey();
-        BigDecimal maior = TABELA_19_MOTORES.lastKey();
-
-        if (cv.compareTo(menor) < 0) {
-            return TABELA_19_MOTORES.get(menor).kva().setScale(2, RoundingMode.HALF_UP);
-        }
-
-        if (cv.compareTo(maior) > 0) {
-            // Proporção além de 30 CV (28 kVA / 30 CV = 0.9333 kVA/CV)
-            return cv.multiply(new BigDecimal("0.9333")).setScale(2, RoundingMode.HALF_UP);
-        }
-
-        BigDecimal floorKey = TABELA_19_MOTORES.floorKey(cv);
-        BigDecimal ceilingKey = TABELA_19_MOTORES.ceilingKey(cv);
-
-        BigDecimal kvaFloor = TABELA_19_MOTORES.get(floorKey).kva();
-        BigDecimal kvaCeil = TABELA_19_MOTORES.get(ceilingKey).kva();
-
-        // Interpolação linear
-        BigDecimal deltaCv = ceilingKey.subtract(floorKey);
-        BigDecimal deltaKva = kvaCeil.subtract(kvaFloor);
-        BigDecimal ratio = cv.subtract(floorKey).divide(deltaCv, 4, RoundingMode.HALF_UP);
-
-        return kvaFloor.add(ratio.multiply(deltaKva)).setScale(2, RoundingMode.HALF_UP);
+        return neoguide.project.engine.normativo.TabelasNormativas.kvaTabela19(cv).setScale(2, RoundingMode.HALF_UP);
     }
 
     public String sugerirChavePartida(BigDecimal cv) {

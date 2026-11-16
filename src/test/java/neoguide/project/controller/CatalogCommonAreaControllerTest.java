@@ -43,10 +43,10 @@ class CatalogCommonAreaControllerTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(12))
                 .andExpect(jsonPath("$[0].potenciaCv").value(0.50))
-                .andExpect(jsonPath("$[0].demandaUnitariakVa").value(0.75))
+                .andExpect(jsonPath("$[0].demandaUnitariakVa").value(0.87))
                 .andExpect(jsonPath("$[0].chavePartidaRecomendada").value("DIRETA"))
                 .andExpect(jsonPath("$[11].potenciaCv").value(15.00))
-                .andExpect(jsonPath("$[11].demandaUnitariakVa").value(14.40));
+                .andExpect(jsonPath("$[11].demandaUnitariakVa").value(16.65));
     }
 
     @Test

@@ -61,13 +61,13 @@ class CatalogServiceTest {
         // 1ª chamada: carrega do banco de dados
         List<AreaRangeResponse> primeiraChamada = catalogService.getFaixasArea();
         assertNotNull(primeiraChamada);
-        assertEquals(13, primeiraChamada.size());
+        assertEquals(39, primeiraChamada.size());
         verify(areaRangeRepository, times(1)).findAllByOrderByMinAreaM2Asc();
 
         // 2ª chamada: deve recuperar do cache em memória RAM sem nova consulta SQL
         List<AreaRangeResponse> segundaChamada = catalogService.getFaixasArea();
         assertNotNull(segundaChamada);
-        assertEquals(13, segundaChamada.size());
+        assertEquals(39, segundaChamada.size());
         verify(areaRangeRepository, times(1)).findAllByOrderByMinAreaM2Asc();
 
         // Limpeza explícita do cache
