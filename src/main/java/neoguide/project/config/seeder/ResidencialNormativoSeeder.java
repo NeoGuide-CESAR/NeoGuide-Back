@@ -1,10 +1,12 @@
 package neoguide.project.config.seeder;
 
+import neoguide.project.engine.normativo.TabelasNormativas;
 import neoguide.project.model.normativo.*;
 import neoguide.project.repository.normativo.*;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Component
@@ -36,46 +38,42 @@ public class ResidencialNormativoSeeder {
         seedLightingResidentialDemandFactors();
     }
 
+    /**
+     * Quadro 35 (Di por área). Upsert pela chave {@code faixa}: linhas existentes recebem os valores normativos,
+     * linhas ausentes são criadas. Linhas antigas que não existem mais na norma NÃO são apagadas aqui
+     * (apagar dados exige autorização; ver docs/AUDITORIA-INTEGRACAO.md, pergunta P15).
+     */
     private void seedAreaRanges() {
-        if (areaRangeRepository.count() > 0) return;
-
-        String norma = "DIS-NOR-053 Quadro 35";
-        List<AreaRangeReference> ranges = List.of(
-                new AreaRangeReference("FAIXA_ATE_40", "Até 40 m²", new BigDecimal("0.00"), new BigDecimal("40.00"), new BigDecimal("1.20"), norma),
-                new AreaRangeReference("FAIXA_41_50", "40,01 a 50 m²", new BigDecimal("40.01"), new BigDecimal("50.00"), new BigDecimal("1.35"), norma),
-                new AreaRangeReference("FAIXA_51_60", "50,01 a 60 m²", new BigDecimal("50.01"), new BigDecimal("60.00"), new BigDecimal("1.50"), norma),
-                new AreaRangeReference("FAIXA_61_70", "60,01 a 70 m²", new BigDecimal("60.01"), new BigDecimal("70.00"), new BigDecimal("1.65"), norma),
-                new AreaRangeReference("FAIXA_71_80", "70,01 a 80 m²", new BigDecimal("70.01"), new BigDecimal("80.00"), new BigDecimal("1.80"), norma),
-                new AreaRangeReference("FAIXA_81_90", "80,01 a 90 m²", new BigDecimal("80.01"), new BigDecimal("90.00"), new BigDecimal("1.95"), norma),
-                new AreaRangeReference("FAIXA_91_100", "90,01 a 100 m²", new BigDecimal("90.01"), new BigDecimal("100.00"), new BigDecimal("2.15"), norma),
-                new AreaRangeReference("FAIXA_101_120", "100,01 a 120 m²", new BigDecimal("100.01"), new BigDecimal("120.00"), new BigDecimal("2.45"), norma),
-                new AreaRangeReference("FAIXA_121_140", "120,01 a 140 m²", new BigDecimal("120.01"), new BigDecimal("140.00"), new BigDecimal("2.80"), norma),
-                new AreaRangeReference("FAIXA_141_170", "140,01 a 170 m²", new BigDecimal("140.01"), new BigDecimal("170.00"), new BigDecimal("3.30"), norma),
-                new AreaRangeReference("FAIXA_171_200", "170,01 a 200 m²", new BigDecimal("170.01"), new BigDecimal("200.00"), new BigDecimal("3.90"), norma),
-                new AreaRangeReference("FAIXA_201_300", "200,01 a 300 m²", new BigDecimal("200.01"), new BigDecimal("300.00"), new BigDecimal("5.40"), norma),
-                new AreaRangeReference("FAIXA_ACIMA_300", "Acima de 300 m²", new BigDecimal("300.01"), new BigDecimal("9999.00"), new BigDecimal("7.20"), norma)
-        );
-        areaRangeRepository.saveAll(ranges);
+        String norma = TabelasNormativas.NORMA_QUADRO_35;
+        for (TabelasNormativas.FaixaArea f : TabelasNormativas.QUADRO_35) {
+            areaRangeRepository.findByFaixa(f.codigo()).ifPresentOrElse(existente -> {
+                existente.setRotulo(f.rotulo());
+                existente.setMinAreaM2(f.minM2());
+                existente.setMaxAreaM2(f.maxM2());
+                existente.setDemandaUnitariaKva(f.demandaKva());
+                existente.setNormaOrigem(norma);
+                areaRangeRepository.save(existente);
+            }, () -> areaRangeRepository.save(
+                    new AreaRangeReference(f.codigo(), f.rotulo(), f.minM2(), f.maxM2(), f.demandaKva(), norma)));
+        }
     }
 
+    /**
+     * Quadro 36 (Fc por número de apartamentos), tabela discreta 1..60 ("60 ou +"). Upsert pela chave
+     * {@code totalApartamentos}. Mesma política de não apagar linhas obsoletas.
+     */
     private void seedCoincidenceFactors() {
-        if (coincidenceFactorRepository.count() > 0) return;
-
-        String norma = "DIS-NOR-053 Quadro 36";
-        List<CoincidenceFactorReference> factors = List.of(
-                new CoincidenceFactorReference(10, new BigDecimal("0.9640"), new BigDecimal("96.40"), norma),
-                new CoincidenceFactorReference(15, new BigDecimal("0.9027"), new BigDecimal("90.27"), norma),
-                new CoincidenceFactorReference(20, new BigDecimal("0.8560"), new BigDecimal("85.60"), norma),
-                new CoincidenceFactorReference(25, new BigDecimal("0.8184"), new BigDecimal("81.84"), norma),
-                new CoincidenceFactorReference(30, new BigDecimal("0.7827"), new BigDecimal("78.27"), norma),
-                new CoincidenceFactorReference(35, new BigDecimal("0.7580"), new BigDecimal("75.80"), norma),
-                new CoincidenceFactorReference(40, new BigDecimal("0.7380"), new BigDecimal("73.80"), norma),
-                new CoincidenceFactorReference(45, new BigDecimal("0.7231"), new BigDecimal("72.31"), norma),
-                new CoincidenceFactorReference(50, new BigDecimal("0.7080"), new BigDecimal("70.80"), norma),
-                new CoincidenceFactorReference(55, new BigDecimal("0.6935"), new BigDecimal("69.35"), norma),
-                new CoincidenceFactorReference(60, new BigDecimal("0.6823"), new BigDecimal("68.23"), norma)
-        );
-        coincidenceFactorRepository.saveAll(factors);
+        String norma = TabelasNormativas.NORMA_QUADRO_36;
+        for (TabelasNormativas.FatorCoincidenciaLinha linha : TabelasNormativas.linhasQuadro36()) {
+            BigDecimal percentual = linha.fator().movePointRight(2).setScale(2, RoundingMode.HALF_UP);
+            coincidenceFactorRepository.findByTotalApartamentos(linha.totalApartamentos()).ifPresentOrElse(existente -> {
+                existente.setFatorCoincidencia(linha.fator());
+                existente.setFatorCoincidenciaPercent(percentual);
+                existente.setNormaOrigem(norma);
+                coincidenceFactorRepository.save(existente);
+            }, () -> coincidenceFactorRepository.save(
+                    new CoincidenceFactorReference(linha.totalApartamentos(), linha.fator(), percentual, norma)));
+        }
     }
 
     private void seedSafetyFactors() {

@@ -102,10 +102,10 @@ class SpecialLoadsControllerTest {
                 .andExpect(jsonPath("$.sucesso").value(true))
                 .andExpect(jsonPath("$.projectId").value(projetoDono.getId()))
                 .andExpect(jsonPath("$.etapaAtual").value(5))
-                .andExpect(jsonPath("$.fatorSimultaneidadeVe").value(0.70))
-                .andExpect(jsonPath("$.demandaVeDveKva").value(20.72))
-                .andExpect(jsonPath("$.demandaIncendioDmbiKva").value(14.40))
-                .andExpect(jsonPath("$.demandaEspecialTotalKva").value(35.12));
+                .andExpect(jsonPath("$.fatorSimultaneidadeVe").value(1.00))
+                .andExpect(jsonPath("$.demandaVeDveKva").value(29.60))
+                .andExpect(jsonPath("$.demandaIncendioDmbiKva").value(16.65))
+                .andExpect(jsonPath("$.demandaEspecialTotalKva").value(46.25));
 
         assertEquals(1, specialLoadsRepository.count());
     }
@@ -123,8 +123,8 @@ class SpecialLoadsControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sucesso").value(true))
-                .andExpect(jsonPath("$.demandaVeDveKva").value(12.58))
-                .andExpect(jsonPath("$.demandaIncendioDmbiKva").value(9.95));
+                .andExpect(jsonPath("$.demandaVeDveKva").value(14.80))
+                .andExpect(jsonPath("$.demandaIncendioDmbiKva").value(11.54));
     }
 
     @Test
@@ -161,7 +161,7 @@ class SpecialLoadsControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(r2)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.demandaVeDveKva").value(20.72));
+                .andExpect(jsonPath("$.demandaVeDveKva").value(29.60));
 
         assertEquals(1, specialLoadsRepository.count());
     }
