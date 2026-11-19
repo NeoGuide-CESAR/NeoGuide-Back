@@ -146,15 +146,15 @@ class CommonAreaCalculationEngineTest {
 
         CommonAreaSubtotal subtotal = engine.calculateParcelaG(items);
 
-        // Tabela 19:
-        // 5.0 cv => 5.27 kVA
-        // 3.0 cv => 3.37 kVA
+        // Tabela 19 (DIS-NOR-030 Rev. 07, coluna VA):
+        // 5.0 cv => 6.02 kVA
+        // 3.0 cv => 4.04 kVA
         // Bomba Reserva: FD = 0.00 => 0.00 kVA
-        // Motores Ativos: 5.0 cv (5.27 kVA) e 3.0 cv (3.37 kVA)
-        // Maior ativo (5.0 cv): FD = 1.00 => 5.27 kVA
-        // Demais ativos (3.0 cv): FD = 0.50 => 3.37 * 0.50 = 1.685 kVA
-        // Total = 5.27 + 1.685 = 6.955 => 6.96 kVA
-        assertEquals(new BigDecimal("6.96"), subtotal.demandaKva());
+        // Motores Ativos: 5.0 cv (6.02 kVA) e 3.0 cv (4.04 kVA)
+        // Maior ativo (5.0 cv): FD = 1.00 => 6.02 kVA
+        // Demais ativos (3.0 cv): FD = 0.50 => 4.04 * 0.50 = 2.02 kVA
+        // Total = 6.02 + 2.02 = 8.04 kVA
+        assertEquals(new BigDecimal("8.04"), subtotal.demandaKva());
     }
 
     @Test
@@ -187,8 +187,8 @@ class CommonAreaCalculationEngineTest {
 
         // N = 2 => FD = 0.56 (Tabela 16)
         // Ptotal = 3.0 kW
-        // Demanda = (3.0 * 0.56) / 0.80 = 1.68 / 0.80 = 2.10 kVA
-        assertEquals(new BigDecimal("2.10"), subtotal.demandaKva());
+        // Demanda = (3.0 * 0.56) / 1.00 = 1.68 kVA (FP 1.00 pelo item 6.27.9; o guia usava 0.80 e dava 2.10)
+        assertEquals(new BigDecimal("1.68"), subtotal.demandaKva());
         assertEquals(new BigDecimal("3.00"), subtotal.potenciaAtivaKw());
     }
 
@@ -219,30 +219,30 @@ class CommonAreaCalculationEngineTest {
                         List.of(new CooktopItem("Cooktop", new BigDecimal("7.0"), 4))
                 ),
                 List.of(new AirConditioningItem("Split", 12000, null, null, 3)), // f = 5.22
-                List.of( // g = 6.96
+                List.of( // g = 8.04
                         new MotorItem("Bomba 1", new BigDecimal("5.0"), null, false, true),
                         new MotorItem("Bomba 2", new BigDecimal("5.0"), null, true, true),
                         new MotorItem("Exaustor", new BigDecimal("3.0"), null, false, true)
                 ),
                 List.of(new ElevatorItem("Elevador", new BigDecimal("11.0"), 2)), // h = 19.13
-                List.of(new PoolPumpItem("Bomba Piscina", new BigDecimal("1.5"), 2)), // i = 2.10
+                List.of(new PoolPumpItem("Bomba Piscina", new BigDecimal("1.5"), 2)), // i = 1.68
                 List.of(new CustomLoadItem("Carga Especial", new BigDecimal("10.0"), new BigDecimal("0.85"), new BigDecimal("0.80"), 1)) // custom = 9.41
         );
 
         CommonAreaCalculationResult result = engine.calculate(input);
 
-        // Soma esperada: 15.50 + 16.72 + 8.64 + 4.57 + 15.40 + 5.22 + 6.96 + 19.13 + 2.10 + 9.41 = 103.65 kVA
-        assertEquals(new BigDecimal("103.65"), result.demandaTotalDsKva());
-        assertEquals(new BigDecimal("103.65"), result.getDemandaServicosDsKva());
+        // Soma esperada: 15.50 + 16.72 + 8.64 + 4.57 + 15.40 + 5.22 + 8.04 + 19.13 + 1.68 + 9.41 = 104.31 kVA
+        assertEquals(new BigDecimal("104.31"), result.demandaTotalDsKva());
+        assertEquals(new BigDecimal("104.31"), result.getDemandaServicosDsKva());
         assertEquals(new BigDecimal("15.50"), result.parcelaA_IluminacaoTug().demandaKva());
         assertEquals(new BigDecimal("16.72"), result.parcelaB_AquecedoresPassagem().demandaKva());
         assertEquals(new BigDecimal("8.64"), result.parcelaC_Boilers().demandaKva());
         assertEquals(new BigDecimal("4.57"), result.parcelaD_Eletrodomesticos().demandaKva());
         assertEquals(new BigDecimal("15.40"), result.parcelaE_CoccaoGourmet().demandaKva());
         assertEquals(new BigDecimal("5.22"), result.parcelaF_Climatizacao().demandaKva());
-        assertEquals(new BigDecimal("6.96"), result.parcelaG_Motores().demandaKva());
+        assertEquals(new BigDecimal("8.04"), result.parcelaG_Motores().demandaKva());
         assertEquals(new BigDecimal("19.13"), result.parcelaH_Elevadores().demandaKva());
-        assertEquals(new BigDecimal("2.10"), result.parcelaI_BombasPiscina().demandaKva());
+        assertEquals(new BigDecimal("1.68"), result.parcelaI_BombasPiscina().demandaKva());
         assertEquals(new BigDecimal("9.41"), result.parcelasCustomizadas().demandaKva());
     }
 

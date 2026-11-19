@@ -62,7 +62,8 @@ public class CommonAreaCalculationEngine {
     private static final BigDecimal FP_COOKTOP = new BigDecimal("1.00");
     private static final BigDecimal FP_CLIMATIZACAO = new BigDecimal("0.92");
     private static final BigDecimal FP_ELEVADOR = new BigDecimal("0.92");
-    private static final BigDecimal FP_PISCINA = new BigDecimal("0.80");
+    /** DIS-NOR-030 item 6.27.9: bombas de piscina e hidromassagem com FP 1,00 (o guia usava 0,80; ver auditoria V6). */
+    private static final BigDecimal FP_PISCINA = new BigDecimal("1.00");
 
     // Tabela 19 da DIS-NOR-030: cv -> kVA trifásico a 380V
     private static final NavigableMap<BigDecimal, BigDecimal> TABELA_19_CV_KVA = new TreeMap<>();
@@ -73,19 +74,10 @@ public class CommonAreaCalculationEngine {
     private record BtuPower(BigDecimal watts, BigDecimal va) {}
 
     static {
-        // Tabela 19
-        TABELA_19_CV_KVA.put(new BigDecimal("0.50"), new BigDecimal("0.75"));
-        TABELA_19_CV_KVA.put(new BigDecimal("0.75"), new BigDecimal("1.03"));
-        TABELA_19_CV_KVA.put(new BigDecimal("1.00"), new BigDecimal("1.31"));
-        TABELA_19_CV_KVA.put(new BigDecimal("1.50"), new BigDecimal("1.86"));
-        TABELA_19_CV_KVA.put(new BigDecimal("2.00"), new BigDecimal("2.36"));
-        TABELA_19_CV_KVA.put(new BigDecimal("3.00"), new BigDecimal("3.37"));
-        TABELA_19_CV_KVA.put(new BigDecimal("4.00"), new BigDecimal("4.32"));
-        TABELA_19_CV_KVA.put(new BigDecimal("5.00"), new BigDecimal("5.27"));
-        TABELA_19_CV_KVA.put(new BigDecimal("7.50"), new BigDecimal("7.64"));
-        TABELA_19_CV_KVA.put(new BigDecimal("10.00"), new BigDecimal("9.95"));
-        TABELA_19_CV_KVA.put(new BigDecimal("12.50"), new BigDecimal("12.14"));
-        TABELA_19_CV_KVA.put(new BigDecimal("15.00"), new BigDecimal("14.40"));
+        // Tabela 19 (DIS-NOR-030 Rev. 07, coluna VA). Fonte única: TabelasNormativas.
+        for (var linha : neoguide.project.engine.normativo.TabelasNormativas.TABELA_19) {
+            TABELA_19_CV_KVA.put(linha.cv(), linha.kva());
+        }
 
         // Tabela 11
         TABELA_11_BTU_W.put(7500, new BtuPower(new BigDecimal("900.00"), new BigDecimal("1100.00")));

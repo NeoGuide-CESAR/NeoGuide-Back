@@ -234,7 +234,7 @@ class AuthControllerTest {
                         .content(loginBody))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status", is(401)))
-                .andExpect(jsonPath("$.message", is("E-mail ou senha inválidos")));
+                .andExpect(jsonPath("$.message", is("E-mail ou senha incorretos.")));
     }
 
     @Test

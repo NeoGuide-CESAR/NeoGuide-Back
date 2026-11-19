@@ -87,8 +87,8 @@ class NormativeDataSeederTest {
     @Test
     @DisplayName("Garante que todas as 21 tabelas normativas oficiais são povoadas com as quantidades esperadas")
     void shouldSeedAll21NormativeTables() {
-        assertEquals(13, areaRangeRepository.count(), "Quadro 35: 13 faixas de área");
-        assertEquals(11, coincidenceFactorRepository.count(), "Quadro 36: 11 fatores de coincidência");
+        assertEquals(39, areaRangeRepository.count(), "Quadro 35: 39 faixas de área (DIS-NOR-053 Rev. 06)");
+        assertEquals(60, coincidenceFactorRepository.count(), "Quadro 36: 60 linhas (1 a 59 + '60 ou mais')");
         assertEquals(4, safetyFactorRepository.count(), "Quadro 37: 4 fatores de segurança");
         assertEquals(8, veFactorRepository.count(), "Quadro 33: 8 faixas de simultaneidade VE");
         assertEquals(20, serviceEntranceRepository.count(), "Tabelas 1 e 2: 20 dimensionamentos de entrada (10 para 220V, 10 para 380V)");
@@ -114,14 +114,15 @@ class NormativeDataSeederTest {
     @DisplayName("Valida exatidão dos dados normativos para amostras críticas de cálculo")
     void shouldValidateNormativeValuesAccuracy() {
         AreaRangeReference faixaAte40 = areaRangeRepository.findByFaixa("FAIXA_ATE_40").orElseThrow();
-        assertEquals(new BigDecimal("1.20"), faixaAte40.getDemandaUnitariaKva());
+        assertEquals(new BigDecimal("1.00"), faixaAte40.getDemandaUnitariaKva());
 
-        AreaRangeReference faixaAcima300 = areaRangeRepository.findByFaixa("FAIXA_ACIMA_300").orElseThrow();
-        assertEquals(new BigDecimal("7.20"), faixaAcima300.getDemandaUnitariaKva());
+        AreaRangeReference faixaAcima900 = areaRangeRepository.findByFaixa("FAIXA_901_1000").orElseThrow();
+        assertEquals(new BigDecimal("16.93"), faixaAcima900.getDemandaUnitariaKva());
 
+        // DIS-NOR-030 Rev. 07, Tabela 19: 5 cv = 6,02 kVA (VA 6020); corrente nominal 380 V = 9,1 A
         MotorReference motor5cv = motorRepository.findByPotenciaCv(new BigDecimal("5.00")).orElseThrow();
-        assertEquals(new BigDecimal("5.27"), motor5cv.getDemandaUnitariaKva());
-        assertEquals(new BigDecimal("8.00"), motor5cv.getCorrenteNominal380vA());
+        assertEquals(new BigDecimal("6.02"), motor5cv.getDemandaUnitariaKva());
+        assertEquals(new BigDecimal("9.10"), motor5cv.getCorrenteNominal380vA());
 
         assertEquals(10, serviceEntranceRepository.findByTensaoFornecimento("220_127V").size());
         assertEquals(10, serviceEntranceRepository.findByTensaoFornecimento("380_220V").size());

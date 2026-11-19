@@ -41,15 +41,15 @@ class CatalogControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(13))
+                .andExpect(jsonPath("$.length()").value(39))
                 .andExpect(jsonPath("$[0].faixa").value("FAIXA_ATE_40"))
                 .andExpect(jsonPath("$[0].rotulo").value("Até 40 m²"))
                 .andExpect(jsonPath("$[0].minAreaM2").value(0.0))
                 .andExpect(jsonPath("$[0].maxAreaM2").value(40.0))
-                .andExpect(jsonPath("$[0].demandaUnitariakVa").value(1.2))
-                .andExpect(jsonPath("$[0].normaOrigem").value("DIS-NOR-053 Quadro 35"))
-                .andExpect(jsonPath("$[12].faixa").value("FAIXA_ACIMA_300"))
-                .andExpect(jsonPath("$[12].demandaUnitariakVa").value(7.2));
+                .andExpect(jsonPath("$[0].demandaUnitariakVa").value(1.0))
+                .andExpect(jsonPath("$[0].normaOrigem").value("DIS-NOR-053 Rev. 06 Quadro 35"))
+                .andExpect(jsonPath("$[38].faixa").value("FAIXA_901_1000"))
+                .andExpect(jsonPath("$[38].demandaUnitariakVa").value(16.93));
     }
 
     @Test
@@ -61,11 +61,13 @@ class CatalogControllerTest {
                 .andExpect(jsonPath("$.norma").value("DIS-NOR-053 Quadro 36"))
                 .andExpect(jsonPath("$.regraEspecialStudios").value("Para edifícios tipo Smart/Studio acima de 15 unidades, adota-se 90% (0,90) fixo"))
                 .andExpect(jsonPath("$.tabela").isArray())
-                .andExpect(jsonPath("$.tabela.length()").value(11))
-                .andExpect(jsonPath("$.tabela[0].totalApartamentos").value(10))
-                .andExpect(jsonPath("$.tabela[0].fatorCoincidencia").value(0.9640))
-                .andExpect(jsonPath("$.tabela[10].totalApartamentos").value(60))
-                .andExpect(jsonPath("$.tabela[10].fatorCoincidencia").value(0.6823));
+                .andExpect(jsonPath("$.tabela.length()").value(60))
+                .andExpect(jsonPath("$.tabela[0].totalApartamentos").value(1))
+                .andExpect(jsonPath("$.tabela[0].fatorCoincidencia").value(1.0))
+                .andExpect(jsonPath("$.tabela[9].totalApartamentos").value(10))
+                .andExpect(jsonPath("$.tabela[9].fatorCoincidencia").value(0.9640))
+                .andExpect(jsonPath("$.tabela[59].totalApartamentos").value(60))
+                .andExpect(jsonPath("$.tabela[59].fatorCoincidencia").value(0.6823));
     }
 
     @Test

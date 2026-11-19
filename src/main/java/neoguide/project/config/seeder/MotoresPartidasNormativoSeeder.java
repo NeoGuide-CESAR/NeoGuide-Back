@@ -34,6 +34,25 @@ public class MotoresPartidasNormativoSeeder {
         seedMotorStarters();
         seedSinglePhaseMotors();
         seedThreePhaseMotors();
+        syncTabela19();
+    }
+
+    /**
+     * Sincroniza kVA, cos φ e corrente 380 V das linhas existentes da Tabela 19 (DIS-NOR-030 Rev. 07)
+     * com a norma. Não cria linhas: potência ativa, rendimento e chave de partida não constam nesta tabela.
+     * Linhas em banco já populado com valores antigos (ex.: 5 cv = 5,27 kVA) são corrigidas aqui.
+     */
+    private void syncTabela19() {
+        for (neoguide.project.engine.normativo.TabelasNormativas.MotorTabela19 linha
+                : neoguide.project.engine.normativo.TabelasNormativas.TABELA_19) {
+            motorRepository.findByPotenciaCv(linha.cv()).ifPresent(existente -> {
+                existente.setDemandaUnitariaKva(linha.kva());
+                existente.setFatorPotencia(linha.cosPhi());
+                existente.setCorrenteNominal380vA(linha.correnteNominal380());
+                existente.setNormaOrigem(neoguide.project.engine.normativo.TabelasNormativas.NORMA_TABELA_19);
+                motorRepository.save(existente);
+            });
+        }
     }
 
     private void seedMotorDemandFactors() {

@@ -475,7 +475,7 @@ class ProjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sucesso", is(true)))
                 .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
-                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(121.21)));
 
         List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
         assertEquals(2, typologies.size());
@@ -484,8 +484,10 @@ class ProjectControllerTest {
         assertEquals(new BigDecimal("73.50"), typologies.get(0).getDemandaTotalTipologiaKva());
 
         assertEquals("Tipologia 78.00m²", typologies.get(1).getNome());
-        assertEquals(new BigDecimal("1.80"), typologies.get(1).getDemandaUnitariaKva());
-        assertEquals(new BigDecimal("90.00"), typologies.get(1).getDemandaTotalTipologiaKva());
+        // Quadro 35 (DIS-NOR-053 Rev. 06): 78 m² está em "76 a 80 m²" -> Di = 1,76 kVA
+        assertEquals(new BigDecimal("1.76"), typologies.get(1).getDemandaUnitariaKva());
+        // 50 unidades x 1,76 kVA (Quadro 35, 76–80 m²) = 88,00 kVA
+        assertEquals(new BigDecimal("88.00"), typologies.get(1).getDemandaTotalTipologiaKva());
 
         Project updated = projectRepository.findById(saved.getId()).orElseThrow();
         assertEquals(2, updated.getEtapaAtual());
@@ -528,7 +530,7 @@ class ProjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sucesso", is(true)))
                 .andExpect(jsonPath("$.projectId", is(saved.getId().intValue())))
-                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(121.21)));
 
         List<ResidentialTypology> typologies = residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId());
         assertEquals(2, typologies.size());
@@ -560,7 +562,7 @@ class ProjectControllerTest {
                         .content(objectMapper.writeValueAsString(firstRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sucesso", is(true)))
-                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(122.72)));
+                .andExpect(jsonPath("$.demandaResidencialFinalDrfKva", is(121.21)));
 
         assertEquals(2, residentialTypologyRepository.findByProjectIdOrderByIdAsc(saved.getId()).size());
 
