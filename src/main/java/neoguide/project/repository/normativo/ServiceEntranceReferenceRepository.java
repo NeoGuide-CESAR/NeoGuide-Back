@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ServiceEntranceReferenceRepository extends JpaRepository<ServiceEntranceReference, Long> {
     List<ServiceEntranceReference> findByTensaoFornecimento(String tensaoFornecimento);
+    List<ServiceEntranceReference> findByTensaoFornecimentoOrderByMaxDemandaKvaAsc(String tensaoFornecimento);
 }
