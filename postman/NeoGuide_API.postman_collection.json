@@ -2,7 +2,7 @@
     "info":  {
                  "_postman_id":  "7f8b9c0d-1e2f-4a3b-9c8d-7e6f5a4b3c2d",
                  "name":  "NeoGuide API",
-                 "description":  "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 05).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP \u0026 Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica com alteração de status para `CANCELADO`.\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n   - `PUT /api/v1/projects/{id}/etapa-comercial` (US-12): Cálculo e persistência das unidades comerciais ($D_c$ kVA) com escalonamento regressivo.\n   - `PUT /api/v1/projects/{id}/etapa-cargas-especiais` (US-13, US-14): Cálculo e persistência de recarga de VE ($D_{ve}$) e motobomba de incêndio ($D_{mbi}$).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n   - **6.3 Especialidades, VE, Ocupação e Motores Monofásicos (DIS-NOR-030 — US-15 / US-16)**: Fatores de Recarga VE (Quadro 33), Cargas Mínimas por Ocupação (Tabela 22), Bombas de Piscina (Tabela 16), Motores Monofásicos (Tabela 18), Dispositivos de Partida (Tabela 17) e Tomadas Mínimas Residenciais (Tabela 5).\n\n7. **Utilitários (`/test`)**:\n   - Endpoint de verificação de conectividade e sanidade da API.\n",
+                 "description":  "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 05).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP \u0026 Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica com alteração de status para `CANCELADO`.\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n   - `PUT /api/v1/projects/{id}/etapa-comercial` (US-12): Cálculo e persistência das unidades comerciais ($D_c$ kVA) com escalonamento regressivo.\n   - `PUT /api/v1/projects/{id}/etapa-cargas-especiais` (US-13, US-14): Cálculo e persistência de recarga de VE ($D_{ve}$) e motobomba de incêndio ($D_{mbi}$).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n   - **6.3 Especialidades, VE, Ocupação e Motores Monofásicos (DIS-NOR-030 — US-15 / US-16)**: Fatores de Recarga VE (Quadro 33), Cargas Mínimas por Ocupação (Tabela 22), Bombas de Piscina (Tabela 16), Motores Monofásicos (Tabela 18), Dispositivos de Partida (Tabela 17) e Tomadas Mínimas Residenciais (Tabela 5).\n\n7. **Utilitários e Avisos (`/api/v1/avisos`, `/test`)**:\n   - `GET /api/v1/avisos`: Endpoint público de avisos/novidades da Home.\n   - `GET /test`: Endpoint de verificação de conectividade e sanidade da API.\n",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -1601,7 +1601,7 @@
                                                                             "code":  200,
                                                                             "_postman_previewlanguage":  "json",
                                                                             "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
-                                                                            "body":  "[{\"id\":1,\"maxVagas\":1,\"fatorSimultaneidade\":1.00,\"faixaDescricao\":\"Até 1 ponto\",\"normaOrigem\":\"DIS-NOR-053 / DIS-NOR-030\"}]"
+                                                                            "body":  "[{\"id\":1,\"maxVagas\":10,\"fatorSimultaneidade\":1.00,\"faixaDescricao\":\"1 a 10\",\"normaOrigem\":\"DIS-NOR-053 Rev. 06 Quadro 33\"}]"
                                                                         }
                                                                     ]
                                                    },
@@ -1818,6 +1818,66 @@
                                              ]
                               },
                      "item":  [
+                                  {
+                                      "name":  "GET /api/v1/avisos - Listar Avisos da Home (Público)",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/avisos",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "avisos"
+                                                                           ]
+                                                              },
+                                                      "description":  "Endpoint público que retorna os avisos/novidades exibidos na tela inicial (bloco Novidades). Retorna lista vazia quando não há avisos publicados."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\"Status code é 200 OK\", function () {",
+                                                                                    "    pm.response.to.have.status(200);",
+                                                                                    "});",
+                                                                                    "",
+                                                                                    "pm.test(\"Retorna lista de avisos\", function () {",
+                                                                                    "    var jsonData = pm.response.json();",
+                                                                                    "    pm.expect(jsonData).to.be.an(\"array\");",
+                                                                                    "});"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   }
+                                                    }
+                                                ],
+                                      "response":  [
+                                                       {
+                                                           "name":  "200 OK - Sem Avisos Publicados",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "_postman_previewlanguage":  "json",
+                                                           "header":  [
+                                                                          {
+                                                                              "key":  "Content-Type",
+                                                                              "value":  "application/json"
+                                                                          }
+                                                                      ],
+                                                           "cookie":  [
+
+                                                                      ],
+                                                           "body":  "[]"
+                                                       }
+                                                   ]
+                                  },
                                   {
                                       "name":  "GET /test - Teste de Conectividade",
                                       "request":  {
