@@ -21,4 +21,11 @@ public enum VoltageSystem {
     public String getDescription() {
         return description;
     }
+
+    public static VoltageSystem fromString(String val) {
+        if (val != null && (val.contains("220_127") || val.contains("220/127") || val.equalsIgnoreCase("TRIFASICO_220_127V"))) {
+            return TRIFASICO_220_127V;
+        }
+        return TRIFASICO_380_220V;
+    }
 }
