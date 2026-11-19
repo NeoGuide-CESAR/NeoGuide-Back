@@ -23,7 +23,19 @@ public class CacheConfig {
                 "catalogoFatoresArCondicionado",
                 "catalogoFatoresCooktop",
                 "catalogoFatoresBoilers",
-                "catalogoFatoresAquecedoresPassagem"
+                "catalogoFatoresAquecedoresPassagem",
+                // Caches de cargas especiais e ocupação (US-15)
+                "catalogo_fatores_ve",
+                "catalogoFatoresVe",
+                "catalogo_cargas_ocupacao",
+                "catalogoCargasOcupacao",
+                "catalogo_fatores_piscina",
+                "catalogoFatoresPiscina",
+                "catalogoBombasPiscina",
+                // Caches de motores monofásicos, partidas e tomadas mínimas (US-16)
+                "catalogoMotoresMonofasicos",
+                "catalogoDispositivosPartida",
+                "catalogoTomadasMinimas"
         );
     }
 }

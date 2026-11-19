@@ -10,8 +10,11 @@ import neoguide.project.dto.catalogo.CoincidenceFactorItemResponse;
 import neoguide.project.dto.catalogo.CoincidenceFactorWrapperResponse;
 import neoguide.project.dto.catalogo.CooktopDemandFactorItemResponse;
 import neoguide.project.dto.catalogo.CooktopDemandFactorWrapperResponse;
+import neoguide.project.dto.catalogo.MinimumOutletsCatalogResponse;
 import neoguide.project.dto.catalogo.MotorCatalogResponse;
+import neoguide.project.dto.catalogo.MotorStarterCatalogResponse;
 import neoguide.project.dto.catalogo.SafetyFactorResponse;
+import neoguide.project.dto.catalogo.SinglePhaseMotorCatalogResponse;
 import neoguide.project.dto.catalogo.WaterHeaterInstantFactorItemResponse;
 import neoguide.project.dto.catalogo.WaterHeaterInstantFactorWrapperResponse;
 import neoguide.project.repository.normativo.AcDemandFactorRepository;
@@ -20,16 +23,21 @@ import neoguide.project.repository.normativo.AreaRangeReferenceRepository;
 import neoguide.project.repository.normativo.BoilerDemandFactorRepository;
 import neoguide.project.repository.normativo.CoincidenceFactorReferenceRepository;
 import neoguide.project.repository.normativo.CooktopDemandFactorRepository;
+import neoguide.project.repository.normativo.MinimumOutletsReferenceRepository;
 import neoguide.project.repository.normativo.MotorReferenceRepository;
+import neoguide.project.repository.normativo.MotorStarterReferenceRepository;
 import neoguide.project.repository.normativo.SafetyFactorReferenceRepository;
+import neoguide.project.repository.normativo.SinglePhaseMotorReferenceRepository;
 import neoguide.project.repository.normativo.WaterHeaterInstantFactorRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class CatalogService {
 
     private final AreaRangeReferenceRepository areaRangeRepository;
@@ -41,6 +49,9 @@ public class CatalogService {
     private final CooktopDemandFactorRepository cooktopRepository;
     private final BoilerDemandFactorRepository boilerRepository;
     private final WaterHeaterInstantFactorRepository waterHeaterRepository;
+    private final SinglePhaseMotorReferenceRepository singlePhaseMotorRepository;
+    private final MotorStarterReferenceRepository motorStarterRepository;
+    private final MinimumOutletsReferenceRepository minimumOutletsRepository;
 
     public CatalogService(AreaRangeReferenceRepository areaRangeRepository,
                           CoincidenceFactorReferenceRepository coincidenceRepository,
@@ -50,7 +61,10 @@ public class CatalogService {
                           AcDemandFactorRepository acDemandFactorRepository,
                           CooktopDemandFactorRepository cooktopRepository,
                           BoilerDemandFactorRepository boilerRepository,
-                          WaterHeaterInstantFactorRepository waterHeaterRepository) {
+                          WaterHeaterInstantFactorRepository waterHeaterRepository,
+                          SinglePhaseMotorReferenceRepository singlePhaseMotorRepository,
+                          MotorStarterReferenceRepository motorStarterRepository,
+                          MinimumOutletsReferenceRepository minimumOutletsRepository) {
         this.areaRangeRepository = areaRangeRepository;
         this.coincidenceRepository = coincidenceRepository;
         this.safetyRepository = safetyRepository;
@@ -60,6 +74,9 @@ public class CatalogService {
         this.cooktopRepository = cooktopRepository;
         this.boilerRepository = boilerRepository;
         this.waterHeaterRepository = waterHeaterRepository;
+        this.singlePhaseMotorRepository = singlePhaseMotorRepository;
+        this.motorStarterRepository = motorStarterRepository;
+        this.minimumOutletsRepository = minimumOutletsRepository;
     }
 
     // =========================================================================
@@ -168,5 +185,33 @@ public class CatalogService {
                 new BigDecimal("1.00"),
                 itens
         );
+    }
+
+    // =========================================================================
+    // Catálogo de Motores Monofásicos, Partidas e Tomadas Mínimas (DIS-NOR-030 - US-16)
+    // =========================================================================
+
+    @Cacheable("catalogoMotoresMonofasicos")
+    public List<SinglePhaseMotorCatalogResponse> getMotoresMonofasicos() {
+        return singlePhaseMotorRepository.findAllByOrderByPotenciaCvNumericaAsc()
+                .stream()
+                .map(SinglePhaseMotorCatalogResponse::from)
+                .toList();
+    }
+
+    @Cacheable("catalogoDispositivosPartida")
+    public List<MotorStarterCatalogResponse> getDispositivosPartida() {
+        return motorStarterRepository.findAllByOrderByIdAsc()
+                .stream()
+                .map(MotorStarterCatalogResponse::from)
+                .toList();
+    }
+
+    @Cacheable("catalogoTomadasMinimas")
+    public List<MinimumOutletsCatalogResponse> getTomadasMinimasResidenciais() {
+        return minimumOutletsRepository.findAllByOrderByMinAreaM2Asc()
+                .stream()
+                .map(MinimumOutletsCatalogResponse::from)
+                .toList();
     }
 }
