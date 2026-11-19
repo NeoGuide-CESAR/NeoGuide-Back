@@ -2,7 +2,7 @@
     "info":  {
                  "_postman_id":  "7f8b9c0d-1e2f-4a3b-9c8d-7e6f5a4b3c2d",
                  "name":  "NeoGuide API",
-                 "description":  "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 05).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP \u0026 Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica com alteração de status para `CANCELADO`.\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n   - `PUT /api/v1/projects/{id}/etapa-comercial` (US-12): Cálculo e persistência das unidades comerciais ($D_c$ kVA) com escalonamento regressivo.\n   - `PUT /api/v1/projects/{id}/etapa-cargas-especiais` (US-13, US-14): Cálculo e persistência de recarga de VE ($D_{ve}$) e motobomba de incêndio ($D_{mbi}$).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n   - **6.3 Especialidades, VE, Ocupação e Motores Monofásicos (DIS-NOR-030 — US-15 / US-16)**: Fatores de Recarga VE (Quadro 33), Cargas Mínimas por Ocupação (Tabela 22), Bombas de Piscina (Tabela 16), Motores Monofásicos (Tabela 18), Dispositivos de Partida (Tabela 17) e Tomadas Mínimas Residenciais (Tabela 5).\n\n7. **Utilitários e Avisos (`/api/v1/avisos`, `/test`)**:\n   - `GET /api/v1/avisos`: Endpoint público de avisos/novidades da Home.\n   - `GET /test`: Endpoint de verificação de conectividade e sanidade da API.\n",
+                 "description":  "# NeoGuide API - Coleção Postman v2.1\n\nColeção oficial para testes, homologação e documentação dos endpoints da API do **NeoGuide Backend** na branch `develop` (Sprint 01 a Sprint 06).\n\n### Módulos Cobertos:\n1. **Autenticação (`/api/v1/auth`)** (US-04, US-04B, US-04C):\n   - Registro de Usuários (Projetista e Analista) com CREA e Empresa.\n   - Login flexível por E-mail ou por CPF/CNPJ.\n   - Script de teste capturando automaticamente o token JWT nas variáveis `{{jwt_token}}` e `{{jwtToken}}`.\n\n2. **Perfil do Projetista (`/api/v1/usuarios/me`)** (US-04D):\n   - `GET /api/v1/usuarios/me`: Obtenção dos dados cadastrais do projetista autenticado.\n   - `PATCH /api/v1/usuarios/me`: Atualização parcial de nome, telefone, empresa e CREA.\n   - `PUT /api/v1/usuarios/me/senha`: Alteração segura de senha com validação de senha atual.\n\n3. **Consulta de CEP \u0026 Concessão (`/api/v1/cep`)** (US-05D):\n   - `GET /api/v1/cep/{cep}`: Proxy resiliente para ViaCEP com enriquecimento e validação automática da área de concessão da Neoenergia Pernambuco (`atendidoPelaNeoenergia: true/false`).\n\n4. **Gestão de Projetos Elétricos (`/api/v1/projects`)** (US-05, US-05B, US-05E):\n   - `POST /api/v1/projects`: Criação de projetos com DNA normativo completo (tensão `380_220V` / `220_127V`, flags comerciais, VE, incêndio, etc.).\n   - `GET /api/v1/projects`: Consulta paginada, ordenação e filtros por status e busca textual.\n   - `GET /api/v1/projects/{id}`: Detalhes do projeto com isolamento multitenancy.\n   - `PATCH /api/v1/projects/{id}`: Edição cadastral e atualização do DNA elétrico do projeto.\n   - `DELETE /api/v1/projects/{id}`: Exclusão lógica atômica (permitida apenas em status `RASCUNHO`).\n   - `POST /api/v1/projects/{id}/duplicate`: Duplicação atômica de projeto.\n\n5. **Wizard de Dimensionamento Elétrico (`/api/v1/projects/{id}/etapa-*` e `/calcular`)**:\n   - `PUT /api/v1/projects/{id}/etapa-residencial` (US-06, US-07): Cálculo e persistência das tipologias de unidades consumidoras residenciais ($D_{rf}$ kVA).\n   - `PUT /api/v1/projects/{id}/etapa-area-comum` (US-09, US-10): Cálculo e persistência das cargas condominiais de áreas comuns e serviços ($D_s$ kVA) com suporte híbrido (catálogo normativo e cargas manuais).\n   - `PUT /api/v1/projects/{id}/etapa-comercial` (US-12): Cálculo e persistência das unidades comerciais ($D_c$ kVA) com escalonamento regressivo.\n   - `PUT /api/v1/projects/{id}/etapa-cargas-especiais` (US-13, US-14): Cálculo e persistência de recarga de VE ($D_{ve}$) e motobomba de incêndio ($D_{mbi}$).\n   - `POST /api/v1/projects/{id}/calcular` (US-17, US-18): Consolidação oficial da demanda global ($D_{ed}$ e $D_{QDG}$), dimensionamento do padrão de entrada e barramentos do QDG (DIS-NOR-053 Anexo II) e conclusão do projeto (`CONCLUIDO`).\n\n6. **Catálogo Normativo (DIS-NOR-053 e DIS-NOR-030)**:\n   - **6.1 Residencial (DIS-NOR-053 — US-08)**: Faixas de Área (Quadro 35), Fatores de Coincidência (Quadro 36) e Fatores de Segurança (Quadro 37).\n   - **6.2 Áreas Comuns e Serviços (DIS-NOR-030 — US-11)**: Motores Elétricos Padrão (Tabela 19), Climatização (Tabela 10), Fatores de Clima (Tabela 11), Fogões/Cooktops (Tabela 7), Boilers (Tabela 8) e Aquecedores de Passagem (Tabela 12).\n   - **6.3 Especialidades, VE, Ocupação e Motores Monofásicos (DIS-NOR-030 — US-15 / US-16)**: Fatores de Recarga VE (Quadro 33), Cargas Mínimas por Ocupação (Tabela 22), Bombas de Piscina (Tabela 16), Motores Monofásicos (Tabela 18), Dispositivos de Partida (Tabela 17) e Tomadas Mínimas Residenciais (Tabela 5).\n   - **6.4 Entrada Coletiva e Barramentos do QDG (DIS-NOR-053 — US-19)**: Dimensionamento de Entrada 380/220V (Anexo II Tabela 2), 220/127V (Anexo II Tabela 1) e Barramentos de Cobre do QDG (Anexo II Tabela 3).\n\n7. **Utilitários e Avisos (`/api/v1/avisos`, `/test`)**:\n   - `GET /api/v1/avisos`: Endpoint público de avisos/novidades da Home.\n   - `GET /test`: Endpoint de verificação de conectividade e sanidade da API.\n",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -1206,10 +1206,112 @@
                                                                                     "    pm.expect(jsonData.demandaIncendioDmbiKva || jsonData.demandaIncendioKva).to.be.above(0);",
                                                                                     "});"
                                                                                 ],
+                                                                        "type":  "text/javascript"
+                                                                    }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "POST /api/v1/projects/{{projectId}}/calcular - Etapa 6: Cálculo Consolidado e Dimensionamento (US-18)",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "value":  "{{jwt_token}}",
+                                                                                      "type":  "string"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Accept",
+                                                                         "value":  "application/json",
+                                                                         "type":  "text"
+                                                                     }
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/projects/{{projectId}}/calcular",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "projects",
+                                                                               "{{projectId}}",
+                                                                               "calcular"
+                                                                           ]
+                                                              },
+                                                      "description":  "Executa o motor consolidado de demanda (US-17/US-18) somando Drf, Ds, Dc, Dve e Dmbi para calcular a demanda global (Ded), demanda do QDG (Dqdg = Ded - Dmbi), dimensionamento do padrão de entrada (DIS-NOR-053 Rev. 06 Anexo II Tabelas 1 e 2) e barramentos de cobre do QDG (Anexo II Tabela 3). Persiste o resultado de forma idempotente em demand_results e promove o status do projeto para CONCLUIDO (etapaAtual = 6). Exige ao menos uma tipologia residencial cadastrada na Etapa 2 (caso contrário retorna 422)."
+                                                  },
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\"Status code é 200 OK\", function () {",
+                                                                                    "    pm.response.to.have.status(200);",
+                                                                                    "});",
+                                                                                    "",
+                                                                                    "pm.test(\"Consolidação de demandas e dimensionamento retornados corretamente\", function () {",
+                                                                                    "    var jsonData = pm.response.json();",
+                                                                                    "    pm.expect(jsonData.status).to.eql(\"CONCLUIDO\");",
+                                                                                    "    pm.expect(jsonData.seloConformidade).to.eql(\"CONFORME_DIS_NOR_053\");",
+                                                                                    "    pm.expect(jsonData.resumoDemandas).to.be.an(\"object\");",
+                                                                                    "    pm.expect(jsonData.resumoDemandas.demandaGlobalDedKva).to.be.above(0);",
+                                                                                    "    pm.expect(jsonData.dimensionamentoEntrada).to.be.an(\"object\");",
+                                                                                    "    pm.expect(jsonData.dimensionamentoEntrada.tipoFornecimento).to.be.a(\"string\");",
+                                                                                    "});"
+                                                                                ],
                                                                        "type":  "text/javascript"
                                                                    }
                                                     }
-                                                ]
+                                                ],
+                                      "response":  [
+                                                       {
+                                                           "name":  "200 OK - Cálculo Consolidado Concluído (BT 380/220V)",
+                                                           "status":  "OK",
+                                                           "code":  200,
+                                                           "_postman_previewlanguage":  "json",
+                                                           "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                           "body":  "{\n  \"projectId\": 1,\n  \"protocolo\": \"PRJ-2026-0001\",\n  \"status\": \"CONCLUIDO\",\n  \"resumoDemandas\": {\n    \"demandaResidencialFinalDrfKva\": 72.45,\n    \"demandaServicosDsKva\": 18.50,\n    \"demandaComercialDcKva\": 12.00,\n    \"demandaVeDveKva\": 23.68,\n    \"demandaIncendioDmbiKva\": 15.00,\n    \"demandaGlobalDedKva\": 141.63,\n    \"demandaQdgKva\": 126.63\n  },\n  \"dimensionamentoEntrada\": {\n    \"tipoFornecimento\": \"TRIFASICO_380_220V_BT\",\n    \"disjuntorGeralA\": 250,\n    \"disjuntorCarcaca\": \"250 A\",\n    \"caboFaseMm2\": \"1 x 150 mm²\",\n    \"caboNeutroMm2\": \"1 x 150 mm²\",\n    \"eletrodutoEntrada\": \"1 x 110 mm (PEAD) / 1 x 100 mm (Aço)\",\n    \"barramentoCobreQdg\": \"30 x 5 mm\",\n    \"capacidadeBarramentoA\": 449\n  },\n  \"seloConformidade\": \"CONFORME_DIS_NOR_053\",\n  \"calculadoEm\": \"2026-11-19T20:00:00\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "401 Unauthorized - Token Ausente ou Inválido",
+                                                           "status":  "Unauthorized",
+                                                           "code":  401,
+                                                           "_postman_previewlanguage":  "json",
+                                                           "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                           "body":  "{\n  \"status\": 401,\n  \"message\": \"Não autorizado: credenciais ausentes ou inválidas.\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "403 Forbidden - Projeto de Outro Projetista",
+                                                           "status":  "Forbidden",
+                                                           "code":  403,
+                                                           "_postman_previewlanguage":  "json",
+                                                           "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                           "body":  "{\n  \"status\": 403,\n  \"message\": \"Usuário não tem permissão para calcular este projeto.\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "404 Not Found - Projeto Não Encontrado",
+                                                           "status":  "Not Found",
+                                                           "code":  404,
+                                                           "_postman_previewlanguage":  "json",
+                                                           "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                           "body":  "{\n  \"status\": 404,\n  \"message\": \"Projeto não encontrado com id: 999\"\n}"
+                                                       },
+                                                       {
+                                                           "name":  "422 Unprocessable Entity - Etapa 2 Residencial Ausente",
+                                                           "status":  "Unprocessable Entity",
+                                                           "code":  422,
+                                                           "_postman_previewlanguage":  "json",
+                                                           "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                           "body":  "{\n  \"status\": 422,\n  \"message\": \"Não é possível processar o cálculo oficial: Nenhuma tipologia residencial cadastrada na Etapa 2.\"\n}"
+                                                       }
+                                                   ]
                                   }
                               ]
                  },
@@ -1797,6 +1899,134 @@
                                                                             "_postman_previewlanguage":  "json",
                                                                             "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
                                                                             "body":  "[{\"id\":1,\"minAreaM2\":0.00,\"maxAreaM2\":40.00,\"faixaDescricao\":\"Até 40 m²\",\"minTug100w\":6,\"minTug600w\":2,\"normaOrigem\":\"DIS-NOR-030\"}]"
+                                                                        }
+                                                                    ]
+                                                   }
+                                               ]
+                                  },
+                                  {
+                                      "name":  "6.4 Entrada Coletiva e Barramentos do QDG (DIS-NOR-053 — US-19)",
+                                      "description":  "Tabelas normativas de dimensionamento do padrão de entrada coletiva (Anexo II Tabelas 1 e 2) e barramentos de cobre do QDG (Anexo II Tabela 3) da DIS-NOR-053 Rev. 06.",
+                                      "item":  [
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/dimensionamento-entrada/380v - Padrão de Entrada Coletiva 380/220V (Tabela 2)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/dimensionamento-entrada/380v",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "dimensionamento-entrada", "380v" ]
+                                                                               },
+                                                                       "description":  "Retorna todas as faixas de dimensionamento do ramal de entrada e proteção geral para redes secundárias trifásicas 380/220V (até 300 kVA), conforme DIS-NOR-053 Rev. 06 Anexo II Tabela 2."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna faixas de entrada 380/220V ordenadas por demanda\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0].tensaoFornecimento).to.eql(\"380_220V\");",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"maxDemandaKva\");",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"disjuntorIn\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Dimensionamento de Entrada 380/220V",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"tensaoFornecimento\":\"380_220V\",\"maxDemandaKva\":46.00,\"circuitos\":1,\"condutorMm2\":\"1 x 16 mm²\",\"dutoPead\":\"1 x 110 mm\",\"dutoAco\":\"1 x 100 mm\",\"correnteA\":70,\"disjuntorCarcaca\":\"160 A\",\"disjuntorIn\":70,\"normaOrigem\":\"DIS-NOR-053\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/dimensionamento-entrada/220v - Padrão de Entrada Coletiva 220/127V (Tabela 1)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/dimensionamento-entrada/220v",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "dimensionamento-entrada", "220v" ]
+                                                                               },
+                                                                       "description":  "Retorna todas as faixas de dimensionamento do ramal de entrada e proteção geral para redes secundárias trifásicas 220/127V (até 173 kVA), conforme DIS-NOR-053 Rev. 06 Anexo II Tabela 1."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna faixas de entrada 220/127V ordenadas por demanda\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0].tensaoFornecimento).to.eql(\"220_127V\");",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"maxDemandaKva\");",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"disjuntorIn\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Dimensionamento de Entrada 220/127V",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":11,\"tensaoFornecimento\":\"220_127V\",\"maxDemandaKva\":26.00,\"circuitos\":1,\"condutorMm2\":\"1 x 16 mm²\",\"dutoPead\":\"1 x 110 mm\",\"dutoAco\":\"1 x 100 mm\",\"correnteA\":70,\"disjuntorCarcaca\":\"160 A\",\"disjuntorIn\":70,\"normaOrigem\":\"DIS-NOR-053\"}]"
+                                                                        }
+                                                                    ]
+                                                   },
+                                                   {
+                                                       "name":  "GET /api/v1/catalogo/barramentos-qdg - Barramentos de Cobre do QDG (Tabela 3)",
+                                                       "request":  {
+                                                                       "auth":  { "type":  "noauth" },
+                                                                       "method":  "GET",
+                                                                       "url":  {
+                                                                                   "raw":  "{{baseUrl}}/api/v1/catalogo/barramentos-qdg",
+                                                                                   "host":  [ "{{baseUrl}}" ],
+                                                                                   "path":  [ "api", "v1", "catalogo", "barramentos-qdg" ]
+                                                                               },
+                                                                       "description":  "Retorna o catálogo de dimensionamento de barramentos de cobre para o Quadro de Distribuição Geral (QDG) em milímetros, polegadas e capacidade nominal em Ampères, conforme DIS-NOR-053 Rev. 06 Anexo II Tabela 3."
+                                                                   },
+                                                       "event":  [
+                                                                     {
+                                                                         "listen":  "test",
+                                                                         "script":  {
+                                                                                        "exec":  [
+                                                                                                     "pm.test(\"Status code é 200 OK\", function () { pm.response.to.have.status(200); });",
+                                                                                                     "pm.test(\"Retorna barramentos de cobre do QDG ordenados por demanda\", function () {",
+                                                                                                     "    var jsonData = pm.response.json();",
+                                                                                                     "    pm.expect(jsonData).to.be.an(\"array\").that.is.not.empty;",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"barraMm\");",
+                                                                                                     "    pm.expect(jsonData[0]).to.have.property(\"correnteNominalA\");",
+                                                                                                     "});"
+                                                                                                 ],
+                                                                                        "type":  "text/javascript"
+                                                                                    }
+                                                                     }
+                                                                 ],
+                                                       "response":  [
+                                                                        {
+                                                                            "name":  "200 OK - Barramentos de Cobre do QDG",
+                                                                            "status":  "OK",
+                                                                            "code":  200,
+                                                                            "_postman_previewlanguage":  "json",
+                                                                            "header":  [ { "key":  "Content-Type", "value":  "application/json" } ],
+                                                                            "body":  "[{\"id\":1,\"maxDemandaKva\":40.00,\"barraMm\":\"19 x 3 mm\",\"barraPol\":\"3/4\\\" x 1/8\\\"\",\"correnteNominalA\":208,\"normaOrigem\":\"DIS-NOR-053\"}]"
                                                                         }
                                                                     ]
                                                    }
