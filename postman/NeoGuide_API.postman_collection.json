@@ -2554,6 +2554,127 @@
           ]
         }
       ]
+    },
+    {
+      "name": "09. Observabilidade & Health Checks",
+      "description": "Probes públicas do Spring Boot Actuator para monitoramento de vitalidade (liveness) e prontidão (readiness com banco de dados e catálogo normativo DIS-NOR-053).",
+      "item": [
+        {
+          "name": "GET /actuator/health/liveness - Liveness Probe",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/liveness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "liveness"
+              ]
+            },
+            "description": "Probe pública de vitalidade da JVM/aplicação utilizada pelo healthcheck do Docker e orquestradores."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Liveness status é UP\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"UP\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Liveness UP",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/vnd.spring-boot.actuator.v3+json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /actuator/health/readiness - Readiness Probe",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/readiness",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            },
+            "description": "Probe pública de prontidão que verifica readinessState, conectividade com PostgreSQL (db) e integridade do catálogo normativo (normativeCatalog >= 39 faixas do Quadro 35)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code é 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Readiness inclui db e normativeCatalog UP\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"UP\");",
+                  "    pm.expect(jsonData.components.db.status).to.eql(\"UP\");",
+                  "    pm.expect(jsonData.components.normativeCatalog.status).to.eql(\"UP\");",
+                  "    pm.expect(jsonData.components.normativeCatalog.details.faixasArea).to.be.at.least(39);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK - Readiness UP",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/vnd.spring-boot.actuator.v3+json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"UP\",\n  \"components\": {\n    \"db\": {\n      \"status\": \"UP\"\n    },\n    \"normativeCatalog\": {\n      \"status\": \"UP\",\n      \"details\": {\n        \"faixasArea\": 39,\n        \"minimoEsperado\": 39\n      }\n    },\n    \"readinessState\": {\n      \"status\": \"UP\"\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
