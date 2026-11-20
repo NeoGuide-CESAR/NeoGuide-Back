@@ -176,11 +176,13 @@ class MemorialPdfControllerTest {
     }
 
     @Test
-    @DisplayName("GET deve retornar 400 Bad Request quando projeto estiver em RASCUNHO")
+    @DisplayName("GET deve retornar 400 Bad Request quando projeto estiver em RASCUNHO (mesmo com Accept application/pdf)")
     void getMemorialPdf_deveRetornar400QuandoProjetoNaoCalculado() throws Exception {
         mockMvc.perform(get("/api/v1/projects/" + projetoRascunho.getId() + "/memorial-pdf")
-                        .header("Authorization", "Bearer " + tokenDono))
-                .andExpect(status().isBadRequest());
+                        .header("Authorization", "Bearer " + tokenDono)
+                        .accept(MediaType.APPLICATION_PDF))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string("Content-Type", containsString(MediaType.APPLICATION_JSON_VALUE)));
     }
 
     @Test
