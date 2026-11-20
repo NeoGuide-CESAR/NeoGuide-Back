@@ -35,7 +35,11 @@ public class CacheConfig {
                 // Caches de motores monofásicos, partidas e tomadas mínimas (US-16)
                 "catalogoMotoresMonofasicos",
                 "catalogoDispositivosPartida",
-                "catalogoTomadasMinimas"
+                "catalogoTomadasMinimas",
+                // Caches de entrada e barramentos QDG (US-19)
+                "catalogo_entrada_380v",
+                "catalogo_entrada_220v",
+                "catalogo_barramentos_qdg"
         );
     }
 }
