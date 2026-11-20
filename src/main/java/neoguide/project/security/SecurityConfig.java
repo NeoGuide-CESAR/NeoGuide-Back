@@ -51,9 +51,7 @@ public class SecurityConfig {
                                 "/api/v1/cep/**",
                                 "/cep/**",
                                 "/api/v1/avisos",
-                                "/api/v1/avisos/**",
-                                "/api/v1/simulacao/**",
-                                "/simulacao/**"
+                                "/api/v1/avisos/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
