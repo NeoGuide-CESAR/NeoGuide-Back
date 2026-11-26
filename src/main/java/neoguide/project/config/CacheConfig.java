@@ -23,7 +23,13 @@ public class CacheConfig {
                 "catalogoFatoresArCondicionado",
                 "catalogoFatoresCooktop",
                 "catalogoFatoresBoilers",
-                "catalogoFatoresAquecedoresPassagem"
+                "catalogoFatoresAquecedoresPassagem",
+                // Caches da etapa comercial (DIS-NOR-030 Tabela 22)
+                "catalogoCargasOcupacao",
+                // Página Normas técnicas
+                "catalogoRecargaVe", "catalogoEntradaServico", "catalogoBarramentos", "catalogoEletrodomesticos",
+                "catalogoFatoresMotores", "catalogoEquipamentosEspeciais", "catalogoBombasPiscina",
+                "catalogoDispositivosPartida", "catalogoMotoresMonofasicos", "normas", "normasTabelas", "normasPremissas"
         );
     }
 }

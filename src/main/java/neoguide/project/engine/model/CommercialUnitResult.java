@@ -3,11 +3,13 @@ package neoguide.project.engine.model;
 import java.math.BigDecimal;
 
 public record CommercialUnitResult(
-        String identificacao,
-        String atividadeComercial,
+        String ocupacaoCodigo,
+        String rotulo,
         BigDecimal areaM2,
         BigDecimal potenciaInstaladaKw,
-        BigDecimal fatorDemandaPonderado,
-        BigDecimal demandaCalculadaKva
+        BigDecimal fatorDemandaEfetivo,
+        BigDecimal demandaCalculadaKva,
+        BigDecimal cargaMinimaKw,
+        String alerta
 ) {
 }

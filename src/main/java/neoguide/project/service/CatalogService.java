@@ -22,11 +22,15 @@ import neoguide.project.repository.normativo.CoincidenceFactorReferenceRepositor
 import neoguide.project.repository.normativo.CooktopDemandFactorRepository;
 import neoguide.project.repository.normativo.MotorReferenceRepository;
 import neoguide.project.repository.normativo.SafetyFactorReferenceRepository;
+import neoguide.project.dto.catalogo.CargaMinimaOcupacaoResponse;
+import neoguide.project.model.normativo.OccupancyLoadReference;
+import neoguide.project.repository.normativo.OccupancyLoadReferenceRepository;
 import neoguide.project.repository.normativo.WaterHeaterInstantFactorRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -41,8 +45,10 @@ public class CatalogService {
     private final CooktopDemandFactorRepository cooktopRepository;
     private final BoilerDemandFactorRepository boilerRepository;
     private final WaterHeaterInstantFactorRepository waterHeaterRepository;
+    private final OccupancyLoadReferenceRepository occupancyLoadRepository;
 
-    public CatalogService(AreaRangeReferenceRepository areaRangeRepository,
+    public CatalogService(OccupancyLoadReferenceRepository occupancyLoadRepository,
+AreaRangeReferenceRepository areaRangeRepository,
                           CoincidenceFactorReferenceRepository coincidenceRepository,
                           SafetyFactorReferenceRepository safetyRepository,
                           MotorReferenceRepository motorRepository,
@@ -60,6 +66,7 @@ public class CatalogService {
         this.cooktopRepository = cooktopRepository;
         this.boilerRepository = boilerRepository;
         this.waterHeaterRepository = waterHeaterRepository;
+        this.occupancyLoadRepository = occupancyLoadRepository;
     }
 
     // =========================================================================
@@ -68,8 +75,10 @@ public class CatalogService {
 
     @Cacheable("catalogoFaixasArea")
     public List<AreaRangeResponse> getFaixasArea() {
+        // Só a revisão vigente: bancos antigos podem ter faixas da revisão anterior sobrepostas (o seed só insere/atualiza).
         return areaRangeRepository.findAllByOrderByMinAreaM2Asc()
                 .stream()
+                .filter(f -> f.getNormaOrigem() != null && f.getNormaOrigem().contains("Rev. 06"))
                 .map(AreaRangeResponse::from)
                 .toList();
     }
@@ -168,5 +177,14 @@ public class CatalogService {
                 new BigDecimal("1.00"),
                 itens
         );
+    }
+
+    /** Ocupações da Tabela 22 (cargas mínimas, FD e FP) para a etapa comercial, em ordem alfabética. */
+    @Cacheable("catalogoCargasOcupacao")
+    public List<CargaMinimaOcupacaoResponse> getCargasMinimasOcupacao() {
+        return occupancyLoadRepository.findAll().stream()
+                .sorted(Comparator.comparing(OccupancyLoadReference::getDescricao))
+                .map(CargaMinimaOcupacaoResponse::from)
+                .toList();
     }
 }

@@ -3,6 +3,7 @@ package neoguide.project.dto;
 import neoguide.project.model.Project;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ProjectResponse {
 
@@ -29,11 +30,42 @@ public class ProjectResponse {
     private String endereco;
     private String bairro;
     private String crea;
+    private String tipoEdificacao;
+    private String tipoEdificacaoDescricao;
+    private String uf;
     private boolean ativo = true;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<CommercialUnitItemResponse> espacosComerciais = List.of();
+    private List<EtapaEstadoResponse> etapas = List.of();
+    private String tipoEnquadramento;
 
     public ProjectResponse() {
+    }
+
+    /** Espaços da etapa comercial, na ordem gravada. Preenchido só na leitura de um projeto. */
+    public ProjectResponse comEspacosComerciais(List<CommercialUnitItemResponse> espacos) {
+        this.espacosComerciais = espacos;
+        return this;
+    }
+
+    /** Estado de cada etapa do wizard e tipo usado no enquadramento BT/MT. Preenchido só na leitura de um projeto. */
+    public ProjectResponse comEstados(List<EtapaEstadoResponse> etapas, String tipoEnquadramento) {
+        this.etapas = etapas != null ? etapas : List.of();
+        this.tipoEnquadramento = tipoEnquadramento;
+        return this;
+    }
+
+    public List<EtapaEstadoResponse> getEtapas() {
+        return etapas;
+    }
+
+    public String getTipoEnquadramento() {
+        return tipoEnquadramento;
+    }
+
+    public List<CommercialUnitItemResponse> getEspacosComerciais() {
+        return espacosComerciais;
     }
 
     public static ProjectResponse from(Project project) {
@@ -64,6 +96,11 @@ public class ProjectResponse {
         response.setEndereco(project.getEndereco());
         response.setBairro(project.getBairro());
         response.setCrea(project.getCrea());
+        if (project.getTipoEdificacao() != null) {
+            response.setTipoEdificacao(project.getTipoEdificacao().name());
+            response.setTipoEdificacaoDescricao(project.getTipoEdificacao().getDescricao());
+        }
+        response.setUf(project.getUf());
         response.setAtivo(project.isAtivo());
         response.setCreatedAt(project.getCreatedAt());
         response.setUpdatedAt(project.getUpdatedAt());
@@ -243,6 +280,30 @@ public class ProjectResponse {
 
     public String getCrea() {
         return crea;
+    }
+
+    public String getTipoEdificacao() {
+        return tipoEdificacao;
+    }
+
+    public void setTipoEdificacao(String tipoEdificacao) {
+        this.tipoEdificacao = tipoEdificacao;
+    }
+
+    public String getTipoEdificacaoDescricao() {
+        return tipoEdificacaoDescricao;
+    }
+
+    public void setTipoEdificacaoDescricao(String tipoEdificacaoDescricao) {
+        this.tipoEdificacaoDescricao = tipoEdificacaoDescricao;
+    }
+
+    public String getUf() {
+        return uf;
+    }
+
+    public void setUf(String uf) {
+        this.uf = uf;
     }
 
     public void setCrea(String crea) {

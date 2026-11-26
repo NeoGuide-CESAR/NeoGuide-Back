@@ -1,85 +1,52 @@
 package neoguide.project.dto;
 
+import neoguide.project.model.CommercialUnit;
+
 import java.math.BigDecimal;
 
+/** Espaço comercial gravado, com o Dc calculado pelo back e o alerta de carga mínima (quando houver). */
 public class CommercialUnitItemResponse {
 
     private Long id;
-    private String identificacao;
-    private String atividadeComercial;
+    private Integer ordem;
+    private String ocupacaoCodigo;
+    private String rotulo;
     private BigDecimal areaM2;
-    private BigDecimal potenciaInstaladaKw;
-    private BigDecimal fatorDemanda;
+    private BigDecimal cargaInstaladaKw;
+    private BigDecimal cargaMinimaKw;
     private BigDecimal demandaCalculadaKva;
+    private String alerta;
 
     public CommercialUnitItemResponse() {
     }
 
-    public CommercialUnitItemResponse(Long id, String identificacao, String atividadeComercial,
-                                      BigDecimal areaM2, BigDecimal potenciaInstaladaKw,
-                                      BigDecimal fatorDemanda, BigDecimal demandaCalculadaKva) {
+    public CommercialUnitItemResponse(Long id, Integer ordem, String ocupacaoCodigo, String rotulo, BigDecimal areaM2,
+                                      BigDecimal cargaInstaladaKw, BigDecimal cargaMinimaKw,
+                                      BigDecimal demandaCalculadaKva, String alerta) {
         this.id = id;
-        this.identificacao = identificacao;
-        this.atividadeComercial = atividadeComercial;
+        this.ordem = ordem;
+        this.ocupacaoCodigo = ocupacaoCodigo;
+        this.rotulo = rotulo;
         this.areaM2 = areaM2;
-        this.potenciaInstaladaKw = potenciaInstaladaKw;
-        this.fatorDemanda = fatorDemanda;
+        this.cargaInstaladaKw = cargaInstaladaKw;
+        this.cargaMinimaKw = cargaMinimaKw;
         this.demandaCalculadaKva = demandaCalculadaKva;
+        this.alerta = alerta;
     }
 
-    public Long getId() {
-        return id;
+    /** Converte a entidade gravada (sem recalcular): usado na leitura do projeto. */
+    public static CommercialUnitItemResponse from(CommercialUnit u) {
+        return new CommercialUnitItemResponse(u.getId(), u.getOrdem(), u.getOcupacaoCodigo(), u.getAtividadeComercial(),
+                u.getAreaM2(), u.getPotenciaInstaladaKw(), null, u.getDemandaCalculadaKva(), null);
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getIdentificacao() {
-        return identificacao;
-    }
-
-    public void setIdentificacao(String identificacao) {
-        this.identificacao = identificacao;
-    }
-
-    public String getAtividadeComercial() {
-        return atividadeComercial;
-    }
-
-    public void setAtividadeComercial(String atividadeComercial) {
-        this.atividadeComercial = atividadeComercial;
-    }
-
-    public BigDecimal getAreaM2() {
-        return areaM2;
-    }
-
-    public void setAreaM2(BigDecimal areaM2) {
-        this.areaM2 = areaM2;
-    }
-
-    public BigDecimal getPotenciaInstaladaKw() {
-        return potenciaInstaladaKw;
-    }
-
-    public void setPotenciaInstaladaKw(BigDecimal potenciaInstaladaKw) {
-        this.potenciaInstaladaKw = potenciaInstaladaKw;
-    }
-
-    public BigDecimal getFatorDemanda() {
-        return fatorDemanda;
-    }
-
-    public void setFatorDemanda(BigDecimal fatorDemanda) {
-        this.fatorDemanda = fatorDemanda;
-    }
-
-    public BigDecimal getDemandaCalculadaKva() {
-        return demandaCalculadaKva;
-    }
-
-    public void setDemandaCalculadaKva(BigDecimal demandaCalculadaKva) {
-        this.demandaCalculadaKva = demandaCalculadaKva;
-    }
+    public Long getId() { return id; }
+    public Integer getOrdem() { return ordem; }
+    public String getOcupacaoCodigo() { return ocupacaoCodigo; }
+    public String getRotulo() { return rotulo; }
+    public BigDecimal getAreaM2() { return areaM2; }
+    public BigDecimal getCargaInstaladaKw() { return cargaInstaladaKw; }
+    public BigDecimal getCargaMinimaKw() { return cargaMinimaKw; }
+    public BigDecimal getDemandaCalculadaKva() { return demandaCalculadaKva; }
+    public String getAlerta() { return alerta; }
 }

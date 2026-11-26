@@ -102,6 +102,7 @@ class ProjectControllerTest {
     @DisplayName("POST /api/v1/projects autenticado com dados válidos deve retornar 201 Created com protocolo gerado")
     void shouldCreateProjectSuccessfully() throws Exception {
         CreateProjectRequest request = new CreateProjectRequest();
+        request.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         request.setTitulo("Condomínio Residencial Jardins");
         request.setDescricao("Edificação multifamiliar de 8 pavimentos");
         request.setTipo("LIGACAO_NOVA");
@@ -136,7 +137,8 @@ class ProjectControllerTest {
                 {
                   "titulo": "Projeto X",
                   "municipio": "Recife",
-                  "tensaoFornecimento": "380_220V"
+                  "tensaoFornecimento": "380_220V",
+                  "tipoEdificacao": "RESIDENCIAL_MULTIFAMILIAR"
                 }
                 """;
 
@@ -155,6 +157,7 @@ class ProjectControllerTest {
     @DisplayName("POST /api/v1/projects sem token de autorização deve retornar 401 Unauthorized")
     void shouldReturn401WhenCreatingWithoutToken() throws Exception {
         CreateProjectRequest request = new CreateProjectRequest();
+        request.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         request.setTitulo("Projeto Sem Token");
         request.setTensaoFornecimento("380_220V");
         request.setMunicipio("Recife");
@@ -171,6 +174,7 @@ class ProjectControllerTest {
     @DisplayName("POST /api/v1/projects com validação inválida deve retornar 400 Bad Request")
     void shouldReturn400WhenRequestIsInvalid() throws Exception {
         CreateProjectRequest request = new CreateProjectRequest();
+        request.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         request.setTitulo("AB"); // Menor que 3 caracteres
         request.setTensaoFornecimento("VOLTAGEM_INVALIDA");
         // Municipio ausente
@@ -684,7 +688,7 @@ class ProjectControllerTest {
         proj.setUser(dono);
         proj.setTensaoFornecimento("380_220V");
         proj.setMunicipio("Recife");
-        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setStatus(ProjectStatus.REPROVADO);
         proj.setCreatedAt(LocalDateTime.now());
         Project saved = projectRepository.save(proj);
 
@@ -699,7 +703,7 @@ class ProjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.titulo", is("Condomínio Novo Atualizado")))
                 .andExpect(jsonPath("$.endereco", is("Rua das Flores, 100")))
-                .andExpect(jsonPath("$.status", is("EM_ANALISE")));
+                .andExpect(jsonPath("$.status", is("REPROVADO")));
     }
 
     @Test
@@ -711,7 +715,7 @@ class ProjectControllerTest {
         proj.setUser(dono);
         proj.setTensaoFornecimento("380_220V");
         proj.setMunicipio("Recife");
-        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setStatus(ProjectStatus.REPROVADO);
         proj.setPossuiVe(false);
         proj.setCreatedAt(LocalDateTime.now());
         Project saved = projectRepository.save(proj);
