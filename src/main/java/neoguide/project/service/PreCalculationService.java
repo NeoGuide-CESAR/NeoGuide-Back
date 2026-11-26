@@ -14,7 +14,6 @@ import neoguide.project.dto.simulation.PreCalculationRequest;
 import neoguide.project.dto.simulation.PreCalculationResponse;
 import neoguide.project.dto.simulation.ResidentialTypologyItemDto;
 import neoguide.project.dto.simulation.SpecialLoadsItemDto;
-import neoguide.project.engine.CommercialCalculationEngine;
 import neoguide.project.engine.CommonAreaCalculationEngine;
 import neoguide.project.engine.ConsolidatedCalculationEngine;
 import neoguide.project.engine.ResidentialCalculationEngine;
@@ -22,9 +21,8 @@ import neoguide.project.engine.SpecialLoadsCalculationEngine;
 import neoguide.project.engine.enums.SupplyVoltageLevel;
 import neoguide.project.engine.enums.VoltageSystem;
 import neoguide.project.engine.model.BusbarDimensioning;
-import neoguide.project.engine.model.CommercialCalculationInput;
 import neoguide.project.engine.model.CommercialCalculationResult;
-import neoguide.project.engine.model.CommercialUnitInput;
+import neoguide.project.dto.EspacoComercialRequest;
 import neoguide.project.engine.model.ConsolidatedCalculationInput;
 import neoguide.project.engine.model.ConsolidatedCalculationResult;
 import neoguide.project.engine.model.ElectricVehicleLoadInput;
@@ -41,20 +39,20 @@ public class PreCalculationService {
 
     private final ResidentialCalculationEngine residentialEngine;
     private final CommonAreaCalculationEngine commonAreaEngine;
-    private final CommercialCalculationEngine commercialEngine;
+    private final CommercialStageService commercialStage;
     private final SpecialLoadsCalculationEngine specialLoadsEngine;
     private final ConsolidatedCalculationEngine consolidatedEngine;
 
     public PreCalculationService(
         ResidentialCalculationEngine residentialEngine,
         CommonAreaCalculationEngine commonAreaEngine,
-        CommercialCalculationEngine commercialEngine,
+        CommercialStageService commercialStage,
         SpecialLoadsCalculationEngine specialLoadsEngine,
         ConsolidatedCalculationEngine consolidatedEngine
     ) {
         this.residentialEngine = residentialEngine;
         this.commonAreaEngine = commonAreaEngine;
-        this.commercialEngine = commercialEngine;
+        this.commercialStage = commercialStage;
         this.specialLoadsEngine = specialLoadsEngine;
         this.consolidatedEngine = consolidatedEngine;
     }
@@ -121,18 +119,12 @@ public class PreCalculationService {
         // 3. Processar Motor Comercial (D_c)
         BigDecimal dcKva = BigDecimal.ZERO;
         if (request.unidadesComerciais() != null && !request.unidadesComerciais().isEmpty()) {
-            List<CommercialUnitInput> comUnits = request.unidadesComerciais().stream()
-                .map(u -> new CommercialUnitInput(
-                    u.identificacao(),
-                    u.atividadeComercial(),
-                    u.areaM2(),
-                    u.potenciaInstaladaKw()
-                ))
+            // A ocupação (atividadeComercial) é resolvida na Tabela 22 da DIS-NOR-030, como na etapa comercial do wizard.
+            List<EspacoComercialRequest> espacos = request.unidadesComerciais().stream()
+                .map(u -> new EspacoComercialRequest(u.atividadeComercial(), u.areaM2(), u.potenciaInstaladaKw()))
                 .toList();
 
-            CommercialCalculationResult comResult = commercialEngine.calcularDemandaComercial(
-                new CommercialCalculationInput(true, comUnits)
-            );
+            CommercialCalculationResult comResult = commercialStage.calcular(espacos);
             dcKva = comResult.demandaComercialDcKva();
         }
 

@@ -69,12 +69,12 @@ public class NormasService {
                         List.of("Edificações do tipo Smart, Studio ou semelhantes com mais de 15 unidades usam fator de coincidência de 90%.")),
                 t("quadro-37", "Quadro 37 · Fator de segurança (Fr)", ref + "Anexo I · Quadro 37", 108, "fatores-seguranca-residencial", List.of(2), false,
                         List.of("Fator de segurança acima do recomendado exige justificativa.")),
-                t("quadro-33", "Quadro 33 · Fator de demanda dos agrupamentos de recarga veicular", ref + "Quadro 33", 98, "fatores-recarga-ve", List.of(5), false, List.of()),
-                t("tabela-2", "Tabela 2 (Anexo II) · Entrada de serviço 380/220 V", ref + "Anexo II · Tabela 2", 123, "dimensionamento-entrada/380v", List.of(), true,
+                t("quadro-33", "Quadro 33 · Fator de demanda dos agrupamentos de recarga veicular", ref + "Quadro 33", 98, "normas/fatores-recarga-ve", List.of(5), false, List.of()),
+                t("tabela-2", "Tabela 2 (Anexo II) · Entrada de serviço 380/220 V", ref + "Anexo II · Tabela 2", 123, "normas/dimensionamento-entrada/380v", List.of(), true,
                         List.of("Disjuntores a partir de 250 A têm relé de sobrecorrente ajustável, de 0,9 a 1,2 vezes a corrente nominal (nota 6).",
                                 "Cada faixa admite uma seção de condutor acima da indicada, desde que se mantenha o disjuntor da faixa (nota 7).")),
-                t("tabela-1", "Tabela 1 (Anexo II) · Entrada de serviço 220/127 V (informativa; não se aplica a Pernambuco)", ref + "Anexo II · Tabela 1", 123, "dimensionamento-entrada/220v", List.of(), false, List.of()),
-                t("tabela-3", "Tabela 3 (Anexo II) · Barramento de cobre do QDG", ref + "Anexo II · Tabela 3", 125, "barramentos-qdg", List.of(), true, List.of()));
+                t("tabela-1", "Tabela 1 (Anexo II) · Entrada de serviço 220/127 V (informativa; não se aplica a Pernambuco)", ref + "Anexo II · Tabela 1", 123, "normas/dimensionamento-entrada/220v", List.of(), false, List.of()),
+                t("tabela-3", "Tabela 3 (Anexo II) · Barramento de cobre do QDG", ref + "Anexo II · Tabela 3", 125, "normas/barramentos-qdg", List.of(), true, List.of()));
     }
 
     private static List<TabelaNormaResponse> tabelas030() {
@@ -89,9 +89,9 @@ public class NormasService {
                 t("tabela-13", "Tabela 13 · Estações de recarga individuais", ref + "Tabela 13", 68, null, List.of(), false, List.of()),
                 t("tabela-14", "Tabela 14 · Motores", ref + "Tabela 14", 68, "fatores-motores", List.of(3), false, List.of()),
                 t("tabela-15", "Tabela 15 · Equipamentos especiais", ref + "Tabela 15", 68, "fatores-equipamentos-especiais", List.of(3), false, List.of()),
-                t("tabela-16", "Tabela 16 · Bombas e hidromassagem", ref + "Tabela 16", 68, "fatores-bombas-piscina", List.of(3), false, List.of()),
-                t("tabela-17", "Tabela 17 · Dispositivos de partida de motores", ref + "Tabela 17", 69, "dispositivos-partida-motores", List.of(3), false, List.of()),
-                t("tabela-18", "Tabela 18 · Motores monofásicos", ref + "Tabela 18", 69, "motores-monofasicos", List.of(3), false, List.of()),
+                t("tabela-16", "Tabela 16 · Bombas e hidromassagem", ref + "Tabela 16", 68, "normas/fatores-bombas-piscina", List.of(3), false, List.of()),
+                t("tabela-17", "Tabela 17 · Dispositivos de partida de motores", ref + "Tabela 17", 69, "normas/dispositivos-partida-motores", List.of(3), false, List.of()),
+                t("tabela-18", "Tabela 18 · Motores monofásicos", ref + "Tabela 18", 69, "normas/motores-monofasicos", List.of(3), false, List.of()),
                 t("tabela-19", "Tabela 19 · Motores trifásicos", ref + "Tabela 19", 70, "motores-padrao", List.of(3, 5), false, List.of()),
                 t("tabela-22", "Tabela 22 · Carga mínima e fatores para iluminação e tomadas", ref + "Tabela 22", 72, "cargas-minimas-ocupacao", List.of(3, 4), false, List.of()));
     }

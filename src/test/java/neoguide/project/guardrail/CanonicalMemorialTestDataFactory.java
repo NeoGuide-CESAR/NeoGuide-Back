@@ -1,14 +1,13 @@
 package neoguide.project.guardrail;
 
 import neoguide.project.dto.CommercialStageRequest;
-import neoguide.project.dto.CommercialUnitItemRequest;
+import neoguide.project.dto.EspacoComercialRequest;
 import neoguide.project.dto.CommonAreaLoadItemRequest;
 import neoguide.project.dto.CommonAreaStageRequest;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialTypologyItemRequest;
 import neoguide.project.dto.SpecialLoadsStageRequest;
-import neoguide.project.engine.model.CommercialCalculationInput;
 import neoguide.project.engine.model.CommercialUnitInput;
 import neoguide.project.engine.model.ConsolidatedCalculationResult;
 import neoguide.project.engine.model.ElectricVehicleLoadInput;
@@ -240,20 +239,16 @@ public final class CanonicalMemorialTestDataFactory {
         );
     }
 
-    public static CommercialCalculationInput cenario4ComercialDomainInput() {
-        return new CommercialCalculationInput(
-                true,
-                List.of(
-                        new CommercialUnitInput("Loja 01 - Térreo", "Farmácia", new BigDecimal("120.00"), new BigDecimal("25.00")),
-                        new CommercialUnitInput("Loja 02 - Térreo", "Café", new BigDecimal("80.00"), new BigDecimal("15.00"))
-                )
-        );
+    /** Cenário 4: 40 kW de escritórios/salas comerciais (Tabela 22: 100% até 20 kW, 70% no excedente, FP 0,92). */
+    public static List<CommercialUnitInput> cenario4ComercialDomainInput() {
+        return List.of(new CommercialUnitInput("ESCRITORIOS", "Escritórios e Salas Comerciais",
+                new BigDecimal("200.00"), new BigDecimal("40.00"),
+                new BigDecimal("30.00"), new BigDecimal("1.00"), new BigDecimal("0.92"), true));
     }
 
     public static CommercialStageRequest cenario4CommercialStageRequest() {
         return new CommercialStageRequest(List.of(
-                new CommercialUnitItemRequest("Loja 01 - Térreo", "Farmácia", new BigDecimal("120.00"), new BigDecimal("25.00")),
-                new CommercialUnitItemRequest("Loja 02 - Térreo", "Café", new BigDecimal("80.00"), new BigDecimal("15.00"))
+                new EspacoComercialRequest("ESCRITORIOS", new BigDecimal("200.00"), new BigDecimal("40.00"))
         ));
     }
 

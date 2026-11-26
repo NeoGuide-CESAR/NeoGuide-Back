@@ -20,22 +20,22 @@ public class CatalogoTabelasController {
         this.catalogo = catalogo;
     }
 
-    @GetMapping("/fatores-recarga-ve")
+    @GetMapping("/normas/fatores-recarga-ve")
     public ResponseEntity<List<Map<String, Object>>> recargaVe() {
         return ResponseEntity.ok(catalogo.recargaVe());
     }
 
-    @GetMapping("/dimensionamento-entrada/380v")
+    @GetMapping("/normas/dimensionamento-entrada/380v")
     public ResponseEntity<List<Map<String, Object>>> entrada380() {
         return ResponseEntity.ok(catalogo.entradaServico("380_220V"));
     }
 
-    @GetMapping("/dimensionamento-entrada/220v")
+    @GetMapping("/normas/dimensionamento-entrada/220v")
     public ResponseEntity<List<Map<String, Object>>> entrada220() {
         return ResponseEntity.ok(catalogo.entradaServico("220_127V"));
     }
 
-    @GetMapping("/barramentos-qdg")
+    @GetMapping("/normas/barramentos-qdg")
     public ResponseEntity<List<Map<String, Object>>> barramentos() {
         return ResponseEntity.ok(catalogo.barramentos());
     }
@@ -55,17 +55,17 @@ public class CatalogoTabelasController {
         return ResponseEntity.ok(catalogo.equipamentosEspeciais());
     }
 
-    @GetMapping("/fatores-bombas-piscina")
+    @GetMapping("/normas/fatores-bombas-piscina")
     public ResponseEntity<List<Map<String, Object>>> piscina() {
         return ResponseEntity.ok(catalogo.bombasPiscina());
     }
 
-    @GetMapping("/dispositivos-partida-motores")
+    @GetMapping("/normas/dispositivos-partida-motores")
     public ResponseEntity<List<Map<String, Object>>> partidas() {
         return ResponseEntity.ok(catalogo.dispositivosPartida());
     }
 
-    @GetMapping("/motores-monofasicos")
+    @GetMapping("/normas/motores-monofasicos")
     public ResponseEntity<List<Map<String, Object>>> monofasicos() {
         return ResponseEntity.ok(catalogo.motoresMonofasicos());
     }

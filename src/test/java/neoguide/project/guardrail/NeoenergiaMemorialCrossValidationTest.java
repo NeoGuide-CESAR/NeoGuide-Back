@@ -397,11 +397,10 @@ class NeoenergiaMemorialCrossValidationTest {
             assertThat(common.demandaTotalDsKva()).isEqualByComparingTo("45.00");
 
             // 3. Comercial (25 + 15 = 40 kW -> Pdem = 34 kW / 0,92 = 36,96 kVA)
-            CommercialCalculationResult commercial = commercialEngine.calcularDemandaComercial(
+            CommercialCalculationResult commercial = commercialEngine.calcular(
                     CanonicalMemorialTestDataFactory.cenario4ComercialDomainInput()
             );
             assertThat(commercial.potenciaTotalInstaladaKw()).isEqualByComparingTo("40.00");
-            assertThat(commercial.demandaAtivaPonderadaKw()).isEqualByComparingTo("34.00");
             assertThat(commercial.demandaComercialDcKva()).isEqualByComparingTo("36.96");
 
             // 4. Motobomba de Incêndio 5 cv (Tabela 19 -> Dmbi = 6,02 kVA)

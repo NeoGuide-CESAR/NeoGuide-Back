@@ -19,6 +19,9 @@ import neoguide.project.dto.simulation.PreCalculationResponse;
 import neoguide.project.dto.simulation.ResidentialTypologyItemDto;
 import neoguide.project.dto.simulation.SpecialLoadsItemDto;
 import neoguide.project.engine.CommercialCalculationEngine;
+import neoguide.project.model.normativo.OccupancyLoadReference;
+import neoguide.project.repository.normativo.OccupancyLoadReferenceRepository;
+import org.mockito.Mockito;
 import neoguide.project.engine.CommonAreaCalculationEngine;
 import neoguide.project.engine.ConsolidatedCalculationEngine;
 import neoguide.project.engine.ResidentialCalculationEngine;
@@ -32,14 +35,19 @@ class PreCalculationServiceTest {
     void setUp() {
         ResidentialCalculationEngine residentialEngine = new ResidentialCalculationEngine();
         CommonAreaCalculationEngine commonAreaEngine = new CommonAreaCalculationEngine();
-        CommercialCalculationEngine commercialEngine = new CommercialCalculationEngine();
+        // Tabela 22 simulada: só a ocupação usada nos testes (LOJAS), igual ao seed.
+        OccupancyLoadReferenceRepository ocupacoes = Mockito.mock(OccupancyLoadReferenceRepository.class);
+        Mockito.when(ocupacoes.findByOcupacaoIn(Mockito.anyCollection())).thenReturn(List.of(
+                new OccupancyLoadReference("LOJAS", "Lojas e Vitrines", new BigDecimal("30.00"), new BigDecimal("700.00"),
+                        new BigDecimal("1.00"), new BigDecimal("1.00"), new BigDecimal("0.92"), "teste", "DIS-NOR-030")));
+        CommercialStageService commercialStage = new CommercialStageService(ocupacoes, new CommercialCalculationEngine());
         SpecialLoadsCalculationEngine specialLoadsEngine = new SpecialLoadsCalculationEngine();
         ConsolidatedCalculationEngine consolidatedEngine = new ConsolidatedCalculationEngine();
 
         preCalculationService = new PreCalculationService(
                 residentialEngine,
                 commonAreaEngine,
-                commercialEngine,
+                commercialStage,
                 specialLoadsEngine,
                 consolidatedEngine
         );
@@ -58,7 +66,7 @@ class PreCalculationServiceTest {
                         new CommonAreaLoadItemDto("PERSONALIZADO", "ILUMINACAO_TUG", "Iluminação Hall", new BigDecimal("10.00"), 1, new BigDecimal("0.85"), new BigDecimal("1.00"), false, null, null, null)
                 ),
                 List.of(
-                        new CommercialUnitItemDto("Loja 01", "PADARIA", new BigDecimal("100.00"), new BigDecimal("20.00"), new BigDecimal("1.00"))
+                        new CommercialUnitItemDto("Loja 01", "LOJAS", new BigDecimal("100.00"), new BigDecimal("20.00"), new BigDecimal("1.00"))
                 ),
                 new SpecialLoadsItemDto(4, new BigDecimal("7.40"), new BigDecimal("2.00"), BigDecimal.ZERO)
         );
