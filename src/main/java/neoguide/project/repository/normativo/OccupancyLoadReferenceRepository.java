@@ -13,4 +13,5 @@ public interface OccupancyLoadReferenceRepository extends JpaRepository<Occupanc
     Optional<OccupancyLoadReference> findByOcupacao(String ocupacao);
 
     List<OccupancyLoadReference> findByOcupacaoIn(Collection<String> ocupacoes);
+    List<OccupancyLoadReference> findAllByOrderByOcupacaoAsc();
 }

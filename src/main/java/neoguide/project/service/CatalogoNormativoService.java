@@ -1,5 +1,10 @@
 package neoguide.project.service;
 
+import neoguide.project.dto.catalogo.BusbarCatalogResponse;
+import neoguide.project.dto.catalogo.OccupancyLoadResponse;
+import neoguide.project.dto.catalogo.PoolPumpFactorResponse;
+import neoguide.project.dto.catalogo.ServiceEntranceCatalogResponse;
+import neoguide.project.dto.catalogo.VeFactorResponse;
 import neoguide.project.model.normativo.AppliancesDemandFactor;
 import neoguide.project.model.normativo.BusbarReference;
 import neoguide.project.model.normativo.MotorDemandFactor;
@@ -13,6 +18,7 @@ import neoguide.project.repository.normativo.AppliancesDemandFactorRepository;
 import neoguide.project.repository.normativo.BusbarReferenceRepository;
 import neoguide.project.repository.normativo.MotorDemandFactorRepository;
 import neoguide.project.repository.normativo.MotorStarterReferenceRepository;
+import neoguide.project.repository.normativo.OccupancyLoadReferenceRepository;
 import neoguide.project.repository.normativo.PoolPumpDemandFactorRepository;
 import neoguide.project.repository.normativo.ServiceEntranceReferenceRepository;
 import neoguide.project.repository.normativo.SinglePhaseMotorReferenceRepository;
@@ -43,12 +49,14 @@ public class CatalogoNormativoService {
     private final PoolPumpDemandFactorRepository piscina;
     private final MotorStarterReferenceRepository partidas;
     private final SinglePhaseMotorReferenceRepository monofasicos;
+    private final OccupancyLoadReferenceRepository ocupacoes;
 
     public CatalogoNormativoService(VeFactorReferenceRepository ve, ServiceEntranceReferenceRepository entradas,
                                     BusbarReferenceRepository barramentos, AppliancesDemandFactorRepository eletrodomesticos,
                                     MotorDemandFactorRepository motores, SpecialEquipmentDemandFactorRepository especiais,
                                     PoolPumpDemandFactorRepository piscina, MotorStarterReferenceRepository partidas,
-                                    SinglePhaseMotorReferenceRepository monofasicos) {
+                                    SinglePhaseMotorReferenceRepository monofasicos,
+                                    OccupancyLoadReferenceRepository ocupacoes) {
         this.ve = ve;
         this.entradas = entradas;
         this.barramentos = barramentos;
@@ -58,6 +66,7 @@ public class CatalogoNormativoService {
         this.piscina = piscina;
         this.partidas = partidas;
         this.monofasicos = monofasicos;
+        this.ocupacoes = ocupacoes;
     }
 
     /** Quadro 33 (DIS-NOR-053): fator de demanda dos agrupamentos de recarga veicular, por número de vagas. */
@@ -128,7 +137,7 @@ public class CatalogoNormativoService {
     }
 
     /** Tabela 16: bombas de piscina e hidromassagem. */
-    @Cacheable("catalogoBombasPiscina")
+    @Cacheable("normasBombasPiscina")
     @Transactional(readOnly = true)
     public List<Map<String, Object>> bombasPiscina() {
         return piscina.findAll().stream().sorted(Comparator.comparing(PoolPumpDemandFactor::getQuantidadeBombas))
@@ -138,7 +147,7 @@ public class CatalogoNormativoService {
     }
 
     /** Tabela 17: dispositivos de partida de motores. */
-    @Cacheable("catalogoDispositivosPartida")
+    @Cacheable("normasDispositivosPartida")
     @Transactional(readOnly = true)
     public List<Map<String, Object>> dispositivosPartida() {
         return partidas.findAll().stream().sorted(Comparator.comparing(MotorStarterReference::getId))
@@ -149,7 +158,7 @@ public class CatalogoNormativoService {
     }
 
     /** Tabela 18: motores monofásicos. */
-    @Cacheable("catalogoMotoresMonofasicos")
+    @Cacheable("normasMotoresMonofasicos")
     @Transactional(readOnly = true)
     public List<Map<String, Object>> motoresMonofasicos() {
         return monofasicos.findAll().stream().sorted(Comparator.comparing(SinglePhaseMotorReference::getPotenciaCvNumerica))
@@ -166,5 +175,59 @@ public class CatalogoNormativoService {
             m.put((String) pares[i], pares[i + 1]);
         }
         return m;
+    }
+
+    @Cacheable("catalogo_fatores_ve")
+    @Transactional(readOnly = true)
+    public List<VeFactorResponse> getFatoresRecargaVe() {
+        return ve.findAllByOrderByMaxVagasAsc()
+                .stream()
+                .map(VeFactorResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable("catalogo_cargas_ocupacao")
+    @Transactional(readOnly = true)
+    public List<OccupancyLoadResponse> getCargasMinimasOcupacao() {
+        return ocupacoes.findAllByOrderByOcupacaoAsc()
+                .stream()
+                .map(OccupancyLoadResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable("catalogo_fatores_piscina")
+    @Transactional(readOnly = true)
+    public List<PoolPumpFactorResponse> getFatoresBombasPiscina() {
+        return piscina.findAllByOrderByQuantidadeBombasAsc()
+                .stream()
+                .map(PoolPumpFactorResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable("catalogo_entrada_380v")
+    @Transactional(readOnly = true)
+    public List<ServiceEntranceCatalogResponse> getDimensionamentoEntrada380v() {
+        return entradas.findByTensaoFornecimentoOrderByMaxDemandaKvaAsc("380_220V")
+                .stream()
+                .map(ServiceEntranceCatalogResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable("catalogo_entrada_220v")
+    @Transactional(readOnly = true)
+    public List<ServiceEntranceCatalogResponse> getDimensionamentoEntrada220v() {
+        return entradas.findByTensaoFornecimentoOrderByMaxDemandaKvaAsc("220_127V")
+                .stream()
+                .map(ServiceEntranceCatalogResponse::fromEntity)
+                .toList();
+    }
+
+    @Cacheable("catalogo_barramentos_qdg")
+    @Transactional(readOnly = true)
+    public List<BusbarCatalogResponse> getBarramentosQdg() {
+        return barramentos.findAllByOrderByMaxDemandaKvaAsc()
+                .stream()
+                .map(BusbarCatalogResponse::fromEntity)
+                .toList();
     }
 }

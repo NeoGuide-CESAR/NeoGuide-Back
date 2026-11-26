@@ -63,6 +63,15 @@ public class AuthService {
                 sanitizedCpfCnpj,
                 role
         );
+        if (request.getTelefone() != null && !request.getTelefone().isBlank()) {
+            user.setTelefone(request.getTelefone().trim());
+        }
+        if (request.getEmpresa() != null && !request.getEmpresa().isBlank()) {
+            user.setEmpresa(request.getEmpresa().trim());
+        }
+        if (request.getCrea() != null && !request.getCrea().isBlank()) {
+            user.setCrea(request.getCrea().trim());
+        }
 
         return UserResponse.from(userRepository.save(user));
     }

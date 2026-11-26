@@ -4,6 +4,7 @@ import neoguide.project.security.jwt.JwtAuthenticationEntryPoint;
 import neoguide.project.security.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -44,6 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // Meu perfil exige login; vem antes do /auth/** público (login e cadastro).
                         .requestMatchers("/api/v1/auth/me", "/auth/me", "/api/v1/auth/password", "/auth/password").authenticated()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/auth/**",
@@ -53,7 +55,12 @@ public class SecurityConfig {
                                 "/api/v1/cep/**",
                                 "/cep/**",
                                 "/api/v1/avisos",
-                                "/api/v1/avisos/**"
+                                "/api/v1/avisos/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/actuator/health",
+                                "/actuator/health/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

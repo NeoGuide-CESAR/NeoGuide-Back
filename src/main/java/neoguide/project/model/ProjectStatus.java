@@ -8,6 +8,7 @@ public enum ProjectStatus {
     RASCUNHO("Rascunho"),
     EM_ANALISE("Em análise"),
     AGUARDANDO_CORRECAO("Aguardando correção"),
+    CONCLUIDO("Concluído"),
     APROVADO("Aprovado"),
     REPROVADO("Reprovado");
 

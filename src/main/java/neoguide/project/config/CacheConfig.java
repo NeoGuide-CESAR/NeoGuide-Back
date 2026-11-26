@@ -28,8 +28,24 @@ public class CacheConfig {
                 "catalogoCargasOcupacao",
                 // Página Normas técnicas
                 "catalogoRecargaVe", "catalogoEntradaServico", "catalogoBarramentos", "catalogoEletrodomesticos",
-                "catalogoFatoresMotores", "catalogoEquipamentosEspeciais", "catalogoBombasPiscina",
-                "catalogoDispositivosPartida", "catalogoMotoresMonofasicos", "normas", "normasTabelas", "normasPremissas"
+                "catalogoFatoresMotores", "catalogoEquipamentosEspeciais", "normasBombasPiscina",
+                "normasDispositivosPartida", "normasMotoresMonofasicos", "normas", "normasTabelas", "normasPremissas",
+                // Caches de cargas especiais e ocupação (US-15)
+                "catalogo_fatores_ve",
+                "catalogoFatoresVe",
+                "catalogo_cargas_ocupacao",
+                "catalogoCargasOcupacao",
+                "catalogo_fatores_piscina",
+                "catalogoFatoresPiscina",
+                "catalogoBombasPiscina",
+                // Caches de motores monofásicos, partidas e tomadas mínimas (US-16)
+                "catalogoMotoresMonofasicos",
+                "catalogoDispositivosPartida",
+                "catalogoTomadasMinimas",
+                // Caches de entrada e barramentos QDG (US-19)
+                "catalogo_entrada_380v",
+                "catalogo_entrada_220v",
+                "catalogo_barramentos_qdg"
         );
     }
 }

@@ -7,8 +7,11 @@ import neoguide.project.dto.catalogo.AreaRangeResponse;
 import neoguide.project.dto.catalogo.BoilerDemandFactorWrapperResponse;
 import neoguide.project.dto.catalogo.CoincidenceFactorWrapperResponse;
 import neoguide.project.dto.catalogo.CooktopDemandFactorWrapperResponse;
+import neoguide.project.dto.catalogo.MinimumOutletsCatalogResponse;
 import neoguide.project.dto.catalogo.MotorCatalogResponse;
+import neoguide.project.dto.catalogo.MotorStarterCatalogResponse;
 import neoguide.project.dto.catalogo.SafetyFactorResponse;
+import neoguide.project.dto.catalogo.SinglePhaseMotorCatalogResponse;
 import neoguide.project.dto.catalogo.WaterHeaterInstantFactorWrapperResponse;
 import neoguide.project.service.CatalogService;
 import org.springframework.http.ResponseEntity;
@@ -85,5 +88,24 @@ public class CatalogController {
     @GetMapping("/cargas-minimas-ocupacao")
     public ResponseEntity<List<CargaMinimaOcupacaoResponse>> getCargasMinimasOcupacao() {
         return ResponseEntity.ok(catalogService.getCargasMinimasOcupacao());
+    }
+
+    // =========================================================================
+    // Catálogo de Motores Monofásicos, Partidas e Tomadas Mínimas (DIS-NOR-030 - US-16)
+    // =========================================================================
+
+    @GetMapping("/motores-monofasicos")
+    public ResponseEntity<List<SinglePhaseMotorCatalogResponse>> getMotoresMonofasicos() {
+        return ResponseEntity.ok(catalogService.getMotoresMonofasicos());
+    }
+
+    @GetMapping("/dispositivos-partida-motores")
+    public ResponseEntity<List<MotorStarterCatalogResponse>> getDispositivosPartida() {
+        return ResponseEntity.ok(catalogService.getDispositivosPartida());
+    }
+
+    @GetMapping("/tomadas-minimas-residenciais")
+    public ResponseEntity<List<MinimumOutletsCatalogResponse>> getTomadasMinimasResidenciais() {
+        return ResponseEntity.ok(catalogService.getTomadasMinimasResidenciais());
     }
 }
