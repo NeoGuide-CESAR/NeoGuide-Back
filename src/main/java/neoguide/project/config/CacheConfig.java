@@ -24,6 +24,12 @@ public class CacheConfig {
                 "catalogoFatoresCooktop",
                 "catalogoFatoresBoilers",
                 "catalogoFatoresAquecedoresPassagem",
+                // Caches da etapa comercial (DIS-NOR-030 Tabela 22)
+                "catalogoCargasOcupacao",
+                // Página Normas técnicas
+                "catalogoRecargaVe", "catalogoEntradaServico", "catalogoBarramentos", "catalogoEletrodomesticos",
+                "catalogoFatoresMotores", "catalogoEquipamentosEspeciais", "normasBombasPiscina",
+                "normasDispositivosPartida", "normasMotoresMonofasicos", "normas", "normasTabelas", "normasPremissas",
                 // Caches de cargas especiais e ocupação (US-15)
                 "catalogo_fatores_ve",
                 "catalogoFatoresVe",

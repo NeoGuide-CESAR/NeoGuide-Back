@@ -75,7 +75,7 @@ class SimulationControllerTest {
           "unidadesComerciais": [
             {
               "identificacao": "Loja 1",
-              "atividadeComercial": "PADARIA",
+              "atividadeComercial": "LOJAS",
               "areaM2": 80.00,
               "potenciaInstaladaKw": 15.00
             }

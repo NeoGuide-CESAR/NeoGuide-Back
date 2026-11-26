@@ -3,7 +3,7 @@ package neoguide.project.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.dto.CommercialStageRequest;
 import neoguide.project.dto.CommercialStageResponse;
-import neoguide.project.dto.CommercialUnitItemRequest;
+import neoguide.project.dto.EspacoComercialRequest;
 import neoguide.project.dto.CommonAreaLoadItemRequest;
 import neoguide.project.dto.CommonAreaStageRequest;
 import neoguide.project.dto.CommonAreaStageResponse;
@@ -210,8 +210,8 @@ class WizardStepsIdempotencyTest {
     @DisplayName("PUT /etapa-comercial disparado 3 vezes consecutivas deve manter mesmo Dc e 0 duplicação")
     void commercialStage_threeConsecutiveIdenticalPuts_shouldBeIdempotent() throws Exception {
         CommercialStageRequest request = new CommercialStageRequest(List.of(
-                new CommercialUnitItemRequest("Loja 01", "Padaria", new BigDecimal("80.00"), new BigDecimal("25.00")),
-                new CommercialUnitItemRequest("Loja 02", "Farmácia", new BigDecimal("60.00"), new BigDecimal("15.00"))
+                new EspacoComercialRequest("LOJAS", new BigDecimal("80.00"), new BigDecimal("25.00")),
+                new EspacoComercialRequest("ESCRITORIOS", new BigDecimal("60.00"), new BigDecimal("15.00"))
         ));
         String payload = objectMapper.writeValueAsString(request);
 
@@ -229,7 +229,7 @@ class WizardStepsIdempotencyTest {
                     CommercialStageResponse.class
             );
             assertTrue(response.isSucesso());
-            assertEquals(2, response.getTotalUnidades());
+            assertEquals(2, response.getTotalEspacos());
             assertNotNull(response.getDemandaComercialDcKva());
 
             if (expectedDc == null) {

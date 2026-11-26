@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(authorize -> authorize
+                        // Meu perfil exige login; vem antes do /auth/** público (login e cadastro).
+                        .requestMatchers("/api/v1/auth/me", "/auth/me", "/api/v1/auth/password", "/auth/password").authenticated()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/**",

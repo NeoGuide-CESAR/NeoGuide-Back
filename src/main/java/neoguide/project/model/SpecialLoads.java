@@ -46,7 +46,19 @@ public class SpecialLoads {
     @Column(name = "potencia_solar_inversor_kw", precision = 8, scale = 2)
     private BigDecimal potenciaSolarInversorKw;
 
+    /** Medidor exclusivo da motobomba de incêndio (DIS-NOR-053, item 6.20.2). Nulo = não informado. */
+    @Column(name = "medidor_exclusivo_motobomba")
+    private Boolean medidorExclusivo;
+
     public SpecialLoads() {
+    }
+
+    public Boolean getMedidorExclusivo() {
+        return medidorExclusivo;
+    }
+
+    public void setMedidorExclusivo(Boolean medidorExclusivo) {
+        this.medidorExclusivo = medidorExclusivo;
     }
 
     public SpecialLoads(Project project, Integer qtdPontosVe, BigDecimal potenciaEstacaoVeKw,

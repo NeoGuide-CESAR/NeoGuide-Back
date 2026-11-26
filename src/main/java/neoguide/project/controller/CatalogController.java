@@ -1,6 +1,7 @@
 package neoguide.project.controller;
 
 import neoguide.project.dto.catalogo.AcDemandFactorWrapperResponse;
+import neoguide.project.dto.catalogo.CargaMinimaOcupacaoResponse;
 import neoguide.project.dto.catalogo.AirConditionerCatalogResponse;
 import neoguide.project.dto.catalogo.AreaRangeResponse;
 import neoguide.project.dto.catalogo.BoilerDemandFactorWrapperResponse;
@@ -81,6 +82,12 @@ public class CatalogController {
     @GetMapping("/fatores-aquecedores-passagem")
     public ResponseEntity<WaterHeaterInstantFactorWrapperResponse> getFatoresAquecedoresPassagem() {
         return ResponseEntity.ok(catalogService.getFatoresAquecedoresPassagem());
+    }
+
+    // Catálogo Comercial (DIS-NOR-030 Tabela 22)
+    @GetMapping("/cargas-minimas-ocupacao")
+    public ResponseEntity<List<CargaMinimaOcupacaoResponse>> getCargasMinimasOcupacao() {
+        return ResponseEntity.ok(catalogService.getCargasMinimasOcupacao());
     }
 
     // =========================================================================

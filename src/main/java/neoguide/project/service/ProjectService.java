@@ -11,12 +11,16 @@ import neoguide.project.engine.ResidentialCalculationEngine;
 import neoguide.project.engine.model.ResidentialCalculationResult;
 import neoguide.project.engine.model.ResidentialTypologyItem;
 import neoguide.project.engine.model.ResidentialTypologyOutput;
+import neoguide.project.dto.TotaisProjetosResponse;
 import neoguide.project.exception.BusinessException;
+import neoguide.project.exception.ConflictException;
 import neoguide.project.exception.ForbiddenException;
 import neoguide.project.exception.ResourceNotFoundException;
+import neoguide.project.exception.ValidationException;
 import neoguide.project.model.Project;
 import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.ProjectType;
+import neoguide.project.model.TipoEdificacao;
 import neoguide.project.model.ResidentialTypology;
 import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
@@ -33,12 +37,10 @@ import neoguide.project.model.SpecialLoads;
 import neoguide.project.repository.SpecialLoadsRepository;
 import neoguide.project.dto.CommercialStageRequest;
 import neoguide.project.dto.CommercialStageResponse;
-import neoguide.project.dto.CommercialUnitItemRequest;
 import neoguide.project.dto.CommercialUnitItemResponse;
-import neoguide.project.engine.CommercialCalculationEngine;
-import neoguide.project.engine.model.CommercialCalculationInput;
+import neoguide.project.dto.EspacoComercialRequest;
+import neoguide.project.dto.CommercialUnitItemResponse;
 import neoguide.project.engine.model.CommercialCalculationResult;
-import neoguide.project.engine.model.CommercialUnitInput;
 import neoguide.project.engine.model.CommercialUnitResult;
 import neoguide.project.model.CommercialUnit;
 import neoguide.project.repository.CommercialUnitRepository;
@@ -60,8 +62,12 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -74,9 +80,10 @@ public class ProjectService {
     private final CommonAreaLoadRepository commonAreaLoadRepository;
     private final CommonAreaCalculationEngine commonAreaCalculationEngine;
     private final CommercialUnitRepository commercialUnitRepository;
-    private final CommercialCalculationEngine commercialCalculationEngine;
+    private final CommercialStageService commercialStageService;
     private final SpecialLoadsRepository specialLoadsRepository;
     private final SpecialLoadsCalculationEngine specialLoadsCalculationEngine;
+    private final EstadoEtapasService estadoEtapasService;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
@@ -85,9 +92,11 @@ public class ProjectService {
                           CommonAreaLoadRepository commonAreaLoadRepository,
                           CommonAreaCalculationEngine commonAreaCalculationEngine,
                           CommercialUnitRepository commercialUnitRepository,
-                          CommercialCalculationEngine commercialCalculationEngine,
+                          CommercialStageService commercialStageService,
                           SpecialLoadsRepository specialLoadsRepository,
-                          SpecialLoadsCalculationEngine specialLoadsCalculationEngine) {
+                          SpecialLoadsCalculationEngine specialLoadsCalculationEngine,
+                          EstadoEtapasService estadoEtapasService) {
+        this.estadoEtapasService = estadoEtapasService;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.residentialTypologyRepository = residentialTypologyRepository;
@@ -95,7 +104,7 @@ public class ProjectService {
         this.commonAreaLoadRepository = commonAreaLoadRepository;
         this.commonAreaCalculationEngine = commonAreaCalculationEngine;
         this.commercialUnitRepository = commercialUnitRepository;
-        this.commercialCalculationEngine = commercialCalculationEngine;
+        this.commercialStageService = commercialStageService;
         this.specialLoadsRepository = specialLoadsRepository;
         this.specialLoadsCalculationEngine = specialLoadsCalculationEngine;
     }
@@ -141,6 +150,7 @@ public class ProjectService {
                 .length("titulo", request.getTitulo(), 3, 150)
                 .validVoltage("tensaoFornecimento", request.getTensaoFornecimento())
                 .required("municipio", request.getMunicipio())
+                .required("tipoEdificacao", request.getTipoEdificacao())
                 .validate();
 
         User user = userRepository.findById(currentUserId)
@@ -161,13 +171,16 @@ public class ProjectService {
 
         ProjectType tipo = parseProjectType(request.getTipo());
         project.setTipo(tipo);
+        project.setTipoEdificacao(parseTipoEdificacao(request.getTipoEdificacao()));
+        project.setUf(normalizarUf(request.getUf()));
 
         String responsavel = request.getResponsavel();
         if (responsavel == null || responsavel.isBlank()) {
             responsavel = user.getName();
         }
         project.setResponsavel(responsavel);
-        project.setCrea(request.getCrea());
+        // O registro profissional do cadastro do usuário preenche o projeto novo (pode ser alterado depois).
+        project.setCrea(request.getCrea() == null || request.getCrea().isBlank() ? user.getCrea() : request.getCrea());
         project.setMunicipio(request.getMunicipio().trim());
         project.setCep(request.getCep());
         project.setEndereco(request.getEndereco());
@@ -186,10 +199,92 @@ public class ProjectService {
      * Lista projetos paginados com filtros opcionais de status e busca textual.
      */
     @Transactional(readOnly = true)
-    public Page<ProjectResponse> listByUserWithFilters(Long userId, ProjectStatus status, String search, Pageable pageable) {
-        String termo = (search != null && !search.isBlank()) ? search.trim() : null;
-        Page<Project> page = projectRepository.findByUserWithFilters(userId, status, termo, pageable);
+    public Page<ProjectResponse> listByUserWithFilters(Long userId, Collection<ProjectStatus> statuses, String search, Pageable pageable) {
+        Collection<ProjectStatus> filtro = (statuses == null || statuses.isEmpty())
+                ? EnumSet.allOf(ProjectStatus.class)
+                : statuses;
+        Page<Project> page = projectRepository.findByUserWithFilters(userId, filtro, termoDeBusca(search), pageable);
         return page.map(ProjectResponse::from);
+    }
+
+    /**
+     * Contagem de projetos por situação, com a mesma busca da listagem e sem o filtro de status.
+     * Alimenta os indicadores da Home e os chips de Meus Projetos.
+     */
+    @Transactional(readOnly = true)
+    public TotaisProjetosResponse totais(Long userId, String search) {
+        Map<ProjectStatus, Long> porStatus = new EnumMap<>(ProjectStatus.class);
+        for (Object[] linha : projectRepository.contarPorStatus(userId, termoDeBusca(search))) {
+            porStatus.put((ProjectStatus) linha[0], (Long) linha[1]);
+        }
+        return TotaisProjetosResponse.de(porStatus);
+    }
+
+    private static String termoDeBusca(String search) {
+        return (search != null && !search.isBlank()) ? search.trim() : null;
+    }
+
+    /**
+     * Regra D1: só projeto em rascunho ou que precisa de correção (reprovado / aguardando correção) pode ser alterado.
+     * Em análise e aprovado são somente leitura; para alterar, o projetista duplica.
+     */
+    private static void assertEditavel(Project project) {
+        ProjectStatus status = project.getStatus();
+        if (status == ProjectStatus.RASCUNHO || status == ProjectStatus.REPROVADO
+                || status == ProjectStatus.AGUARDANDO_CORRECAO) {
+            return;
+        }
+        String motivo = status == ProjectStatus.EM_ANALISE
+                ? "Projeto em análise é somente leitura."
+                : "Projeto aprovado é somente leitura. Para alterar, duplique o projeto.";
+        throw new ConflictException(motivo);
+    }
+
+    private static TipoEdificacao parseTipoEdificacao(String valor) {
+        try {
+            TipoEdificacao tipo = TipoEdificacao.from(valor);
+            if (tipo == null) {
+                throw new BusinessException("Tipo de edificação é obrigatório");
+            }
+            return tipo;
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(e.getMessage());
+        }
+    }
+
+    private static String normalizarUf(String uf) {
+        if (uf == null || uf.isBlank()) {
+            return null;
+        }
+        String valor = uf.trim().toUpperCase();
+        Validator.create().length("uf", valor, 2, 2).validate();
+        return valor;
+    }
+
+    /** Copia as etapas (residencial, área comum, comercial e cargas especiais) de um projeto para a cópia. */
+    private void copiarEtapas(Project origem, Project copia) {
+        for (ResidentialTypology t : residentialTypologyRepository.findByProjectIdOrderByIdAsc(origem.getId())) {
+            residentialTypologyRepository.save(new ResidentialTypology(copia, t.getNome(), t.getAreaUtilM2(),
+                    t.getQuantidadeUnidades(), t.isSmartStudio(), t.getDemandaUnitariaKva(), t.getDemandaTotalTipologiaKva()));
+        }
+        for (CommonAreaLoad c : commonAreaLoadRepository.findByProjectIdOrderByIdAsc(origem.getId())) {
+            commonAreaLoadRepository.save(new CommonAreaLoad(copia, c.getOrigem(), c.getSubmodulo(),
+                    c.getCatalogoMotorId(), c.getCatalogoClimaId(), c.getCatalogoEquipamentoId(), c.getTipoEquipamento(),
+                    c.getDescricao(), c.getQuantidade(), c.getPotenciaNominalKw(), c.getFatorPotencia(),
+                    c.getFatorDemanda(), c.getDemandaCalculadaKva(), c.isReserva()));
+        }
+        for (CommercialUnit u : commercialUnitRepository.findByProjectIdOrderByIdAsc(origem.getId())) {
+            commercialUnitRepository.save(new CommercialUnit(copia, u.getOrdem(), u.getOcupacaoCodigo(),
+                    u.getIdentificacao(), u.getAtividadeComercial(), u.getAreaM2(), u.getPotenciaInstaladaKw(),
+                    u.getFatorDemanda(), u.getDemandaCalculadaKva()));
+        }
+        specialLoadsRepository.findByProjectId(origem.getId()).ifPresent(s -> {
+            SpecialLoads copiaCargas = new SpecialLoads(copia, s.getQtdPontosVe(), s.getPotenciaEstacaoVeKw(),
+                    s.getFatorSimultaneidadeVe(), s.getDemandaVeKva(), s.getPotenciaBombaIncendioCv(),
+                    s.getDemandaBombaIncendioKva(), s.getPotenciaSolarInversorKw());
+            copiaCargas.setMedidorExclusivo(s.getMedidorExclusivo());
+            specialLoadsRepository.save(copiaCargas);
+        });
     }
 
     /**
@@ -230,7 +325,11 @@ public class ProjectService {
         copy.setCreatedAt(now);
         copy.setDataSubmissao(now);
 
+        copy.setTipoEdificacao(original.getTipoEdificacao());
+        copy.setUf(original.getUf());
+
         Project saved = projectRepository.save(copy);
+        copiarEtapas(original, saved);
         return ProjectResponse.from(saved);
     }
 
@@ -252,7 +351,21 @@ public class ProjectService {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
 
+        assertEditavel(project);
+
         boolean structuralChanged = false;
+
+        if (request.getTipoEdificacao() != null && !request.getTipoEdificacao().isBlank()) {
+            TipoEdificacao novo = parseTipoEdificacao(request.getTipoEdificacao());
+            if (novo != project.getTipoEdificacao()) {
+                project.setTipoEdificacao(novo);
+                structuralChanged = true;
+            }
+        }
+
+        if (request.getUf() != null) {
+            project.setUf(normalizarUf(request.getUf()));
+        }
 
         if (request.getTipo() != null && !request.getTipo().isBlank()) {
             ProjectType newTipo = parseProjectType(request.getTipo());
@@ -383,7 +496,11 @@ public class ProjectService {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
 
-        return ProjectResponse.from(project);
+        List<CommercialUnitItemResponse> espacos = commercialUnitRepository.findByProjectIdOrderByIdAsc(projectId).stream()
+                .map(CommercialUnitItemResponse::from)
+                .toList();
+        return ProjectResponse.from(project).comEspacosComerciais(espacos)
+                .comEstados(estadoEtapasService.etapas(project), estadoEtapasService.tipoEnquadramento(project));
     }
 
     /**
@@ -427,6 +544,7 @@ public class ProjectService {
         if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
+        assertEditavel(project);
 
         List<ResidentialTypologyItem> engineItems = new ArrayList<>();
         for (ResidentialTypologyItemRequest item : request.getTipologias()) {
@@ -493,6 +611,7 @@ public class ProjectService {
         if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
+        assertEditavel(project);
 
         CommonAreaCalculationResult calcResult = commonAreaCalculationEngine.calculate(request.getCargas());
 
@@ -630,11 +749,14 @@ public class ProjectService {
     }
 
     /**
-     * Salva as unidades comerciais da Etapa 4 de forma atômica e idempotente.
+     * Salva os espaços comerciais da Etapa 4 de forma atômica e idempotente: a lista enviada substitui a anterior.
      */
     @Transactional
     public CommercialStageResponse saveCommercialStage(Long projectId, CommercialStageRequest request, Long currentUserId) {
-        validateCommercialStageRequest(request);
+        List<EspacoComercialRequest> espacos = request == null || request.getEspacos() == null
+                ? List.of()
+                : request.getEspacos();
+        commercialStageService.validarEspacos(espacos);
 
         Project project = projectRepository.findById(projectId)
                 .filter(Project::isAtivo)
@@ -643,8 +765,9 @@ public class ProjectService {
         if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
+        assertEditavel(project);
 
-        boolean hasCommercial = request != null && request.getUnidadesComerciais() != null && !request.getUnidadesComerciais().isEmpty();
+        CommercialCalculationResult calculo = commercialStageService.calcular(espacos);
 
         commercialUnitRepository.deleteByProjectId(projectId);
         commercialUnitRepository.flush();
@@ -652,125 +775,63 @@ public class ProjectService {
         int currentStage = project.getEtapaAtual() != null ? project.getEtapaAtual() : 1;
         int novaEtapa = Math.max(currentStage, 4);
         project.setEtapaAtual(novaEtapa);
+        project.setPossuiComercial(!espacos.isEmpty());
         project.setUpdatedAt(LocalDateTime.now());
-
-        if (!hasCommercial) {
-            CommercialCalculationResult calcResult = commercialCalculationEngine.calcularDemandaComercial(
-                    new CommercialCalculationInput(false, Collections.emptyList())
-            );
-            project.setPossuiComercial(false);
-            projectRepository.save(project);
-
-            return new CommercialStageResponse(
-                    true,
-                    project.getId(),
-                    novaEtapa,
-                    0,
-                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
-                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
-                    calcResult.memoriaCalculo(),
-                    Collections.emptyList()
-            );
-        }
-
-        List<CommercialUnitInput> engineInputs = new ArrayList<>();
-        for (CommercialUnitItemRequest item : request.getUnidadesComerciais()) {
-            engineInputs.add(new CommercialUnitInput(
-                    item.getIdentificacao(),
-                    item.getAtividadeComercial(),
-                    item.getAreaM2(),
-                    item.getPotenciaInstaladaKw()
-            ));
-        }
-
-        CommercialCalculationResult calcResult = commercialCalculationEngine.calcularDemandaComercial(
-                new CommercialCalculationInput(true, engineInputs)
-        );
-
-        List<CommercialUnit> entitiesToSave = new ArrayList<>();
-        List<CommercialUnitResult> engineUnits = calcResult.unidadesDetalhadas();
-
-        for (int i = 0; i < request.getUnidadesComerciais().size(); i++) {
-            CommercialUnitItemRequest reqItem = request.getUnidadesComerciais().get(i);
-            CommercialUnitResult resItem = (engineUnits != null && i < engineUnits.size()) ? engineUnits.get(i) : null;
-
-            BigDecimal fd = resItem != null ? resItem.fatorDemandaPonderado() : BigDecimal.ONE;
-            BigDecimal demKva = resItem != null ? resItem.demandaCalculadaKva() : BigDecimal.ZERO;
-
-            CommercialUnit entity = new CommercialUnit(
-                    project,
-                    reqItem.getIdentificacao(),
-                    reqItem.getAtividadeComercial(),
-                    reqItem.getAreaM2(),
-                    reqItem.getPotenciaInstaladaKw(),
-                    fd,
-                    demKva
-            );
-            entitiesToSave.add(entity);
-        }
-
-        List<CommercialUnit> savedEntities = commercialUnitRepository.saveAll(entitiesToSave);
-
-        project.setPossuiComercial(true);
         projectRepository.save(project);
 
-        List<CommercialUnitItemResponse> responseUnits = new ArrayList<>();
-        for (CommercialUnit cu : savedEntities) {
-            responseUnits.add(new CommercialUnitItemResponse(
-                    cu.getId(),
-                    cu.getIdentificacao(),
-                    cu.getAtividadeComercial(),
-                    cu.getAreaM2(),
-                    cu.getPotenciaInstaladaKw(),
-                    cu.getFatorDemanda(),
-                    cu.getDemandaCalculadaKva()
-            ));
+        List<CommercialUnit> entidades = new ArrayList<>();
+        List<CommercialUnitResult> resultados = calculo.unidadesDetalhadas();
+        for (int i = 0; i < resultados.size(); i++) {
+            CommercialUnitResult r = resultados.get(i);
+            entidades.add(new CommercialUnit(project, i + 1, r.ocupacaoCodigo(), "Espaço " + (i + 1), r.rotulo(),
+                    r.areaM2(), r.potenciaInstaladaKw(), r.fatorDemandaEfetivo(), r.demandaCalculadaKva()));
+        }
+        List<CommercialUnit> salvos = commercialUnitRepository.saveAll(entidades);
+
+        List<CommercialUnitItemResponse> itens = new ArrayList<>();
+        for (int i = 0; i < salvos.size(); i++) {
+            CommercialUnit gravado = salvos.get(i);
+            CommercialUnitResult r = resultados.get(i);
+            itens.add(new CommercialUnitItemResponse(gravado.getId(), gravado.getOrdem(), r.ocupacaoCodigo(), r.rotulo(),
+                    r.areaM2(), r.potenciaInstaladaKw(), r.cargaMinimaKw(), r.demandaCalculadaKva(), r.alerta()));
         }
 
-        return new CommercialStageResponse(
+        CommercialStageResponse resposta = new CommercialStageResponse(
                 true,
                 project.getId(),
                 novaEtapa,
-                savedEntities.size(),
-                calcResult.potenciaTotalInstaladaKw(),
-                calcResult.demandaComercialDcKva(),
-                calcResult.memoriaCalculo(),
-                responseUnits
+                salvos.size(),
+                calculo.potenciaTotalInstaladaKw(),
+                calculo.demandaComercialDcKva(),
+                calculo.memoriaCalculo(),
+                itens
         );
+        TipoEdificacao enquadramento = EnquadramentoEdificacao.derivar(project.getTipoEdificacao(), !salvos.isEmpty());
+        resposta.setTipoEnquadramento(enquadramento == null ? null : enquadramento.name());
+        return resposta;
     }
 
-    private void validateCommercialStageRequest(CommercialStageRequest request) {
-        if (request == null || request.getUnidadesComerciais() == null || request.getUnidadesComerciais().isEmpty()) {
-            return;
+    /**
+     * Registra a etapa mais adiantada que o usuário alcançou (1 a 6; 6 é a Revisão). Nunca recua.
+     * É o que marca como concluídas as etapas opcionais avançadas sem preencher.
+     */
+    @Transactional
+    public int registrarEtapaAlcancada(Long projectId, Integer etapa, Long currentUserId) {
+        if (etapa == null || etapa < 1 || etapa > 6) {
+            throw new ValidationException(Map.of("etapa", "A etapa deve ser um número de 1 a 6"));
         }
-
-        Validator validator = Validator.create();
-        for (int i = 0; i < request.getUnidadesComerciais().size(); i++) {
-            CommercialUnitItemRequest item = request.getUnidadesComerciais().get(i);
-            String prefix = "unidadesComerciais[" + i + "].";
-            if (item == null) {
-                validator.custom(prefix, false, "Item de unidade comercial não pode ser nulo");
-                continue;
-            }
-            validator.required(prefix + "identificacao", item.getIdentificacao());
-            if (item.getIdentificacao() != null && item.getIdentificacao().length() > 100) {
-                validator.custom(prefix + "identificacao", false, "A identificação deve conter no máximo 100 caracteres");
-            }
-
-            validator.required(prefix + "atividadeComercial", item.getAtividadeComercial());
-            if (item.getAtividadeComercial() != null && item.getAtividadeComercial().length() > 100) {
-                validator.custom(prefix + "atividadeComercial", false, "A atividade comercial deve conter no máximo 100 caracteres");
-            }
-
-            if (item.getPotenciaInstaladaKw() == null || item.getPotenciaInstaladaKw().compareTo(BigDecimal.ZERO) <= 0) {
-                validator.custom(prefix + "potenciaInstaladaKw", false, "A potência instalada em kW deve ser maior que zero");
-            }
-
-            if (item.getAreaM2() != null && item.getAreaM2().compareTo(BigDecimal.ZERO) <= 0) {
-                validator.custom(prefix + "areaM2", false, "A área em m² deve ser maior que zero quando informada");
-            }
+        Project project = projectRepository.findById(projectId)
+                .filter(Project::isAtivo)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com id " + projectId));
+        if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
-        validator.validate();
+        assertEditavel(project);
+        int atual = project.getEtapaAtual() != null ? project.getEtapaAtual() : 1;
+        project.setEtapaAtual(Math.max(atual, etapa));
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
+        return project.getEtapaAtual();
     }
 
     /**
@@ -787,6 +848,7 @@ public class ProjectService {
         if (project.getUser() == null || !project.getUser().getId().equals(currentUserId)) {
             throw new ForbiddenException("Acesso negado: o projeto pertence a outro projetista");
         }
+        assertEditavel(project);
 
         int vagas = (request != null && request.getQtdPontosVe() != null) ? request.getQtdPontosVe() : 0;
         BigDecimal pVe = (request != null) ? request.getPotenciaVeKw() : null;
@@ -812,6 +874,7 @@ public class ProjectService {
         specialLoads.setPotenciaBombaIncendioCv(cv);
         specialLoads.setDemandaBombaIncendioKva(calcResult.motobombaIncendio().demandaDmbiKva());
         specialLoads.setPotenciaSolarInversorKw((request != null) ? request.getPotenciaSolarInversorKw() : null);
+        specialLoads.setMedidorExclusivo((request != null) ? request.getMedidorExclusivo() : null);
 
         specialLoadsRepository.save(specialLoads);
 

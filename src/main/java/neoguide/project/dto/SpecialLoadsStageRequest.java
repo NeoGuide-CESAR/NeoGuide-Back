@@ -11,6 +11,16 @@ public class SpecialLoadsStageRequest {
     private BigDecimal fatorSimultaneidadeCustom;
     private BigDecimal demandaKvaCustom;
 
+    private Boolean medidorExclusivo;
+
+    public Boolean getMedidorExclusivo() {
+        return medidorExclusivo;
+    }
+
+    public void setMedidorExclusivo(Boolean medidorExclusivo) {
+        this.medidorExclusivo = medidorExclusivo;
+    }
+
     public SpecialLoadsStageRequest() {
     }
 

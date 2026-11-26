@@ -8,89 +8,38 @@ public class CommercialStageResponse {
     private boolean sucesso;
     private Long projectId;
     private Integer etapaAtual;
-    private int totalUnidades;
+    private int totalEspacos;
     private BigDecimal potenciaTotalInstaladaKw;
     private BigDecimal demandaComercialDcKva;
     private String memoriaCalculo;
-    private List<CommercialUnitItemResponse> unidades;
+    private List<CommercialUnitItemResponse> espacos;
+    private String tipoEnquadramento;
 
     public CommercialStageResponse() {
     }
 
-    public CommercialStageResponse(boolean sucesso, Long projectId, Integer etapaAtual, int totalUnidades,
+    public CommercialStageResponse(boolean sucesso, Long projectId, Integer etapaAtual, int totalEspacos,
                                    BigDecimal potenciaTotalInstaladaKw, BigDecimal demandaComercialDcKva,
-                                   String memoriaCalculo, List<CommercialUnitItemResponse> unidades) {
+                                   String memoriaCalculo, List<CommercialUnitItemResponse> espacos) {
         this.sucesso = sucesso;
         this.projectId = projectId;
         this.etapaAtual = etapaAtual;
-        this.totalUnidades = totalUnidades;
+        this.totalEspacos = totalEspacos;
         this.potenciaTotalInstaladaKw = potenciaTotalInstaladaKw;
         this.demandaComercialDcKva = demandaComercialDcKva;
         this.memoriaCalculo = memoriaCalculo;
-        this.unidades = unidades;
+        this.espacos = espacos;
     }
 
-    public boolean isSucesso() {
-        return sucesso;
-    }
-
-    public void setSucesso(boolean sucesso) {
-        this.sucesso = sucesso;
-    }
-
-    public Long getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(Long projectId) {
-        this.projectId = projectId;
-    }
-
-    public Integer getEtapaAtual() {
-        return etapaAtual;
-    }
-
-    public void setEtapaAtual(Integer etapaAtual) {
-        this.etapaAtual = etapaAtual;
-    }
-
-    public int getTotalUnidades() {
-        return totalUnidades;
-    }
-
-    public void setTotalUnidades(int totalUnidades) {
-        this.totalUnidades = totalUnidades;
-    }
-
-    public BigDecimal getPotenciaTotalInstaladaKw() {
-        return potenciaTotalInstaladaKw;
-    }
-
-    public void setPotenciaTotalInstaladaKw(BigDecimal potenciaTotalInstaladaKw) {
-        this.potenciaTotalInstaladaKw = potenciaTotalInstaladaKw;
-    }
-
-    public BigDecimal getDemandaComercialDcKva() {
-        return demandaComercialDcKva;
-    }
-
-    public void setDemandaComercialDcKva(BigDecimal demandaComercialDcKva) {
-        this.demandaComercialDcKva = demandaComercialDcKva;
-    }
-
-    public String getMemoriaCalculo() {
-        return memoriaCalculo;
-    }
-
-    public void setMemoriaCalculo(String memoriaCalculo) {
-        this.memoriaCalculo = memoriaCalculo;
-    }
-
-    public List<CommercialUnitItemResponse> getUnidades() {
-        return unidades;
-    }
-
-    public void setUnidades(List<CommercialUnitItemResponse> unidades) {
-        this.unidades = unidades;
-    }
+    public boolean isSucesso() { return sucesso; }
+    public Long getProjectId() { return projectId; }
+    public Integer getEtapaAtual() { return etapaAtual; }
+    public int getTotalEspacos() { return totalEspacos; }
+    public BigDecimal getPotenciaTotalInstaladaKw() { return potenciaTotalInstaladaKw; }
+    public BigDecimal getDemandaComercialDcKva() { return demandaComercialDcKva; }
+    public String getMemoriaCalculo() { return memoriaCalculo; }
+    public List<CommercialUnitItemResponse> getEspacos() { return espacos; }
+    /** Tipo usado no enquadramento BT/MT (residencial com espaços comerciais vira MISTO). */
+    public String getTipoEnquadramento() { return tipoEnquadramento; }
+    public void setTipoEnquadramento(String tipoEnquadramento) { this.tipoEnquadramento = tipoEnquadramento; }
 }

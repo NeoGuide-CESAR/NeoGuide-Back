@@ -79,6 +79,13 @@ public class Project {
     @Column(length = 100)
     private String bairro;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_edificacao", length = 40)
+    private TipoEdificacao tipoEdificacao;
+
+    @Column(length = 2)
+    private String uf;
+
     @Column(length = 50)
     private String crea;
 
@@ -259,6 +266,22 @@ public class Project {
 
     public void setBairro(String bairro) {
         this.bairro = bairro;
+    }
+
+    public TipoEdificacao getTipoEdificacao() {
+        return tipoEdificacao;
+    }
+
+    public void setTipoEdificacao(TipoEdificacao tipoEdificacao) {
+        this.tipoEdificacao = tipoEdificacao;
+    }
+
+    public String getUf() {
+        return uf;
+    }
+
+    public void setUf(String uf) {
+        this.uf = uf;
     }
 
     public String getCrea() {

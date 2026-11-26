@@ -9,6 +9,7 @@ import neoguide.project.dto.CommonAreaStageResponse;
 import neoguide.project.dto.CreateProjectRequest;
 import neoguide.project.dto.CreateProjectResponse;
 import neoguide.project.dto.ProjectResponse;
+import neoguide.project.dto.TotaisProjetosResponse;
 import neoguide.project.dto.ProjectUpdatePatchRequest;
 import neoguide.project.dto.ResidentialStageRequest;
 import neoguide.project.dto.ResidentialStageResponse;
@@ -18,6 +19,7 @@ import neoguide.project.model.User;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.service.ProjectService;
 import org.springframework.data.domain.Page;
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -56,17 +58,30 @@ public class ProjectController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Lista paginada. {@code status} aceita uma ou mais situações separadas por vírgula
+     * (ex.: {@code status=REPROVADO,AGUARDANDO_CORRECAO}). Sem status, lista todas.
+     */
     @GetMapping
     public ResponseEntity<Page<ProjectResponse>> list(
-            @RequestParam(required = false) ProjectStatus status,
+            @RequestParam(required = false) List<ProjectStatus> status,
             @RequestParam(required = false) String search,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable,
             Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
         return ResponseEntity.ok(projectService.listByUserWithFilters(userId, status, search, pageable));
     }
 
-    @PostMapping("/{id}/duplicate")
+    /** Contagens por situação com a mesma busca (sem filtro de status). */
+    @GetMapping("/totais")
+    public ResponseEntity<TotaisProjetosResponse> totais(
+            @RequestParam(required = false) String search,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        return ResponseEntity.ok(projectService.totais(userId, search));
+    }
+
+    @PostMapping({"/{id}/duplicate", "/{id}/duplicar"})
     public ResponseEntity<ProjectResponse> duplicate(@PathVariable("id") Long id,
                                                      Authentication authentication) {
         Long userId = getAuthenticatedUserId(authentication);
@@ -118,6 +133,20 @@ public class ProjectController {
         return ResponseEntity.ok(response);
     }
 
+
+    /** Etapa mais adiantada que o usuário alcançou (1 a 6). */
+    public record EtapaAlcancadaRequest(Integer etapa) {
+    }
+
+    @PutMapping({"/{id}/etapa-atual", "/api/v1/projects/{id}/etapa-atual", "/projects/{id}/etapa-atual"})
+    public ResponseEntity<java.util.Map<String, Integer>> registrarEtapaAlcancada(
+            @PathVariable("id") Long id,
+            @RequestBody EtapaAlcancadaRequest request,
+            Authentication authentication) {
+        Long userId = getAuthenticatedUserId(authentication);
+        int etapa = projectService.registrarEtapaAlcancada(id, request == null ? null : request.etapa(), userId);
+        return ResponseEntity.ok(java.util.Map.of("etapaAtual", etapa));
+    }
 
     @PutMapping({"/{id}/etapa-comercial", "/api/v1/projects/{id}/etapa-comercial", "/projects/{id}/etapa-comercial"})
     public ResponseEntity<CommercialStageResponse> saveCommercialStage(

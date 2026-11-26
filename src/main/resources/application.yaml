@@ -17,6 +17,15 @@ spring:
   configuration:
     host-front-end: ${HOST_FRONT_END:http://localhost:4200}
 
+# Documento oficial das normas (página Normas técnicas). Vazio = a tela orienta a buscar no site da Neoenergia.
+# Só use o arquivo do back se o grupo tiver autorização para distribuir o PDF.
+neoguide:
+  normas:
+    dis-nor-053:
+      url: ${NEOGUIDE_NORMA_053_URL:}
+    dis-nor-030:
+      url: ${NEOGUIDE_NORMA_030_URL:}
+
 security:
   jwt:
     secret: ${SECURITY_JWT_SECRET:neoguide-super-secret-key-for-jwt-token-hmac-sha256-minimum-32-bytes}

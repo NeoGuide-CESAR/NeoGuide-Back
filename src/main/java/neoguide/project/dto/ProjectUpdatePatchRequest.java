@@ -18,8 +18,26 @@ public class ProjectUpdatePatchRequest {
     private String logradouro;
     private String bairro;
     private String crea;
+    private String tipoEdificacao;
+    private String uf;
 
     public ProjectUpdatePatchRequest() {
+    }
+
+    public String getTipoEdificacao() {
+        return tipoEdificacao;
+    }
+
+    public void setTipoEdificacao(String tipoEdificacao) {
+        this.tipoEdificacao = tipoEdificacao;
+    }
+
+    public String getUf() {
+        return uf;
+    }
+
+    public void setUf(String uf) {
+        this.uf = uf;
     }
 
     public String getTitulo() {

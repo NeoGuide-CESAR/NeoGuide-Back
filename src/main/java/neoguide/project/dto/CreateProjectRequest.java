@@ -16,6 +16,7 @@ public class CreateProjectRequest {
     private String cep;
     private String endereco;
     private String bairro;
+    private String uf;
 
     public CreateProjectRequest() {
     }
@@ -54,10 +55,20 @@ public class CreateProjectRequest {
         this.tipo = tipo;
     }
 
+    public String getTipoEdificacao() {
+        return tipoEdificacao;
+    }
+
     public void setTipoEdificacao(String tipoEdificacao) {
-        if (this.tipo == null) {
-            this.tipo = tipoEdificacao;
-        }
+        this.tipoEdificacao = tipoEdificacao;
+    }
+
+    public String getUf() {
+        return uf;
+    }
+
+    public void setUf(String uf) {
+        this.uf = uf;
     }
 
     public String getTensaoFornecimento() {

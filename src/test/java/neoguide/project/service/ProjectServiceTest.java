@@ -11,10 +11,11 @@ import neoguide.project.repository.SpecialLoadsRepository;
 
 import neoguide.project.dto.CommercialStageRequest;
 import neoguide.project.dto.CommercialStageResponse;
-import neoguide.project.dto.CommercialUnitItemRequest;
-import neoguide.project.engine.CommercialCalculationEngine;
+import neoguide.project.dto.EspacoComercialRequest;
+import neoguide.project.engine.model.CommercialUnitResult;
 import neoguide.project.engine.model.CommercialCalculationResult;
 import neoguide.project.model.CommercialUnit;
+import neoguide.project.model.TipoEdificacao;
 import neoguide.project.repository.CommercialUnitRepository;
 
 import neoguide.project.dto.CommonAreaLoadItemRequest;
@@ -64,6 +65,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -97,13 +99,16 @@ class ProjectServiceTest {
     private CommercialUnitRepository commercialUnitRepository;
 
     @Mock
-    private CommercialCalculationEngine commercialCalculationEngine;
+    private CommercialStageService commercialStageService;
 
     @Mock
     private SpecialLoadsRepository specialLoadsRepository;
 
     @Mock
     private SpecialLoadsCalculationEngine specialLoadsCalculationEngine;
+
+    @Mock
+    private EstadoEtapasService estadoEtapasService;
 
     @InjectMocks
     private ProjectService projectService;
@@ -150,6 +155,7 @@ class ProjectServiceTest {
     @DisplayName("Deve criar projeto com sucesso, persistir dados do DNA e retornar CreateProjectResponse")
     void shouldCreateProjectSuccessfully() {
         CreateProjectRequest request = new CreateProjectRequest();
+        request.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         request.setTitulo("Edifício Solar Central");
         request.setDescricao("Edifício comercial de 12 pavimentos");
         request.setTipo("LIGACAO_NOVA");
@@ -244,16 +250,16 @@ class ProjectServiceTest {
         Pageable pageable = PageRequest.of(0, 5, Sort.by("createdAt").descending());
         Page<Project> page = new PageImpl<>(List.of(p), pageable, 1);
 
-        when(projectRepository.findByUserWithFilters(eq(10L), eq(ProjectStatus.RASCUNHO), eq("Solar"), eq(pageable)))
+        when(projectRepository.findByUserWithFilters(eq(10L), eq(List.of(ProjectStatus.RASCUNHO)), eq("Solar"), eq(pageable)))
                 .thenReturn(page);
 
-        Page<ProjectResponse> result = projectService.listByUserWithFilters(10L, ProjectStatus.RASCUNHO, "Solar", pageable);
+        Page<ProjectResponse> result = projectService.listByUserWithFilters(10L, List.of(ProjectStatus.RASCUNHO), "Solar", pageable);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
         assertEquals("PRJ-2026-0001", result.getContent().get(0).getProtocolo());
         assertEquals("Edifício Solar Central", result.getContent().get(0).getTitulo());
-        verify(projectRepository).findByUserWithFilters(10L, ProjectStatus.RASCUNHO, "Solar", pageable);
+        verify(projectRepository).findByUserWithFilters(10L, List.of(ProjectStatus.RASCUNHO), "Solar", pageable);
     }
 
     @Test
@@ -262,14 +268,14 @@ class ProjectServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Project> page = new PageImpl<>(List.of(), pageable, 0);
 
-        when(projectRepository.findByUserWithFilters(eq(10L), isNull(), isNull(), eq(pageable)))
+        when(projectRepository.findByUserWithFilters(eq(10L), any(), isNull(), eq(pageable)))
                 .thenReturn(page);
 
         Page<ProjectResponse> result = projectService.listByUserWithFilters(10L, null, "   ", pageable);
 
         assertNotNull(result);
         assertEquals(0, result.getTotalElements());
-        verify(projectRepository).findByUserWithFilters(10L, null, null, pageable);
+        verify(projectRepository).findByUserWithFilters(eq(10L), any(), isNull(), eq(pageable));
     }
 
     @Test
@@ -415,6 +421,7 @@ class ProjectServiceTest {
     @DisplayName("Deve lançar ValidationException quando título for ausente ou inválido")
     void shouldValidateTitulo() {
         CreateProjectRequest reqSemTitulo = new CreateProjectRequest();
+        reqSemTitulo.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         reqSemTitulo.setTensaoFornecimento("380_220V");
         reqSemTitulo.setMunicipio("Recife");
 
@@ -424,6 +431,7 @@ class ProjectServiceTest {
         assertTrue(ex1.getErrors().containsKey("titulo"));
 
         CreateProjectRequest reqTituloCurto = new CreateProjectRequest();
+        reqTituloCurto.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         reqTituloCurto.setTitulo("AB");
         reqTituloCurto.setTensaoFornecimento("380_220V");
         reqTituloCurto.setMunicipio("Recife");
@@ -438,6 +446,7 @@ class ProjectServiceTest {
     @DisplayName("Deve lançar ValidationException quando tensão de fornecimento for inválida")
     void shouldValidateTensaoFornecimento() {
         CreateProjectRequest reqTensaoInvalida = new CreateProjectRequest();
+        reqTensaoInvalida.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         reqTensaoInvalida.setTitulo("Projeto Residencial");
         reqTensaoInvalida.setTensaoFornecimento("110V_INVALIDA");
         reqTensaoInvalida.setMunicipio("Recife");
@@ -452,6 +461,7 @@ class ProjectServiceTest {
     @DisplayName("Deve lançar ValidationException quando município for ausente")
     void shouldValidateMunicipio() {
         CreateProjectRequest reqSemMunicipio = new CreateProjectRequest();
+        reqSemMunicipio.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         reqSemMunicipio.setTitulo("Projeto Residencial");
         reqSemMunicipio.setTensaoFornecimento("380_220V");
 
@@ -635,7 +645,7 @@ class ProjectServiceTest {
         proj.setTitulo("Titulo Antigo");
         proj.setMunicipio("Recife");
         proj.setTensaoFornecimento("380_220V");
-        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setStatus(ProjectStatus.REPROVADO);
         proj.setAtivo(true);
 
         when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
@@ -649,7 +659,7 @@ class ProjectServiceTest {
 
         assertEquals("Titulo Novo Atualizado", response.getTitulo());
         assertEquals("Rua Nova, 123", response.getEndereco());
-        assertEquals(ProjectStatus.EM_ANALISE.name(), response.getStatus());
+        assertEquals(ProjectStatus.REPROVADO.name(), response.getStatus());
         verify(projectRepository).save(proj);
     }
 
@@ -662,7 +672,7 @@ class ProjectServiceTest {
         proj.setTitulo("Projeto Inicial");
         proj.setMunicipio("Recife");
         proj.setTensaoFornecimento("380_220V");
-        proj.setStatus(ProjectStatus.EM_ANALISE);
+        proj.setStatus(ProjectStatus.REPROVADO);
         proj.setPossuiVe(false);
         proj.setAtivo(true);
 
@@ -938,45 +948,41 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("saveCommercialStage com sucesso deve persistir unidades e atualizar projeto para etapa 4")
-    void saveCommercialStage_comSucesso_salvaUnidadesEAtualizaEtapa() {
+    @DisplayName("saveCommercialStage com sucesso deve gravar os espaços e avançar o projeto para etapa 4")
+    void saveCommercialStage_comSucesso_salvaEspacosEAtualizaEtapa() {
         Project project = new Project();
         project.setId(1L);
         project.setUser(user);
         project.setEtapaAtual(2);
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(commercialCalculationEngine.calcularDemandaComercial(any())).thenReturn(
-                new CommercialCalculationResult(
-                        new BigDecimal("25.00"),
-                        new BigDecimal("20.00"),
-                        new BigDecimal("5.00"),
-                        new BigDecimal("23.50"),
-                        new BigDecimal("0.92"),
-                        new BigDecimal("25.54"),
-                        List.of(),
-                        "Memória de cálculo de teste"
-                )
-        );
+        CommercialUnitResult unidade = new CommercialUnitResult("LOJAS", "Lojas e Vitrines", new BigDecimal("50.00"),
+                new BigDecimal("25.00"), new BigDecimal("1.0000"), new BigDecimal("27.17"), new BigDecimal("1.50"), null);
+        when(commercialStageService.calcular(anyList())).thenReturn(
+                new CommercialCalculationResult(new BigDecimal("25.00"), new BigDecimal("27.17"), List.of(unidade), "memória"));
+        when(commercialUnitRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
-        CommercialUnitItemRequest item = new CommercialUnitItemRequest("Loja 01", "Padaria", new BigDecimal("50.00"), new BigDecimal("25.00"));
-        CommercialStageRequest request = new CommercialStageRequest(List.of(item));
+        CommercialStageRequest request = new CommercialStageRequest(
+                List.of(new EspacoComercialRequest("LOJAS", new BigDecimal("50.00"), new BigDecimal("25.00"))));
 
         CommercialStageResponse response = projectService.saveCommercialStage(1L, request, 10L);
 
-        assertNotNull(response);
         assertTrue(response.isSucesso());
         assertEquals(4, response.getEtapaAtual());
-        assertEquals(new BigDecimal("25.54"), response.getDemandaComercialDcKva());
+        assertEquals(1, response.getTotalEspacos());
+        assertEquals(new BigDecimal("27.17"), response.getDemandaComercialDcKva());
+        assertEquals("LOJAS", response.getEspacos().get(0).getOcupacaoCodigo());
+        assertEquals(1, response.getEspacos().get(0).getOrdem());
         assertTrue(project.isPossuiComercial());
+        verify(commercialStageService).validarEspacos(anyList());
         verify(commercialUnitRepository).deleteByProjectId(1L);
         verify(commercialUnitRepository).saveAll(anyList());
         verify(projectRepository).save(project);
     }
 
     @Test
-    @DisplayName("saveCommercialStage sem unidades deve zerar comercial e manter etapa 4")
-    void saveCommercialStage_semUnidades_zeraComercial() {
+    @DisplayName("saveCommercialStage sem espaços deve zerar o comercial e manter etapa 4")
+    void saveCommercialStage_semEspacos_zeraComercial() {
         Project project = new Project();
         project.setId(1L);
         project.setUser(user);
@@ -984,26 +990,18 @@ class ProjectServiceTest {
         project.setPossuiComercial(true);
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(commercialCalculationEngine.calcularDemandaComercial(any())).thenReturn(
-                new CommercialCalculationResult(
-                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                        new BigDecimal("0.92"), BigDecimal.ZERO, List.of(), "Sem comercial"
-                )
-        );
+        when(commercialStageService.calcular(anyList())).thenReturn(
+                new CommercialCalculationResult(BigDecimal.ZERO, BigDecimal.ZERO, List.of(), "Sem espaços"));
+        when(commercialUnitRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
-        CommercialStageRequest request = new CommercialStageRequest(List.of());
+        CommercialStageResponse response = projectService.saveCommercialStage(1L,
+                new CommercialStageRequest(List.of()), 10L);
 
-        CommercialStageResponse response = projectService.saveCommercialStage(1L, request, 10L);
-
-        assertNotNull(response);
-        assertTrue(response.isSucesso());
         assertEquals(4, response.getEtapaAtual());
-        assertEquals(0, response.getTotalUnidades());
-        assertEquals(BigDecimal.ZERO.setScale(2), response.getDemandaComercialDcKva());
+        assertEquals(0, response.getTotalEspacos());
+        assertEquals(BigDecimal.ZERO, response.getDemandaComercialDcKva());
         assertFalse(project.isPossuiComercial());
         verify(commercialUnitRepository).deleteByProjectId(1L);
-        verify(commercialUnitRepository, never()).saveAll(anyList());
-        verify(projectRepository).save(project);
     }
 
     @Test
@@ -1031,12 +1029,15 @@ class ProjectServiceTest {
     }
 
     @Test
-    @DisplayName("saveCommercialStage com potência inválida deve lançar ValidationException")
-    void saveCommercialStage_potenciaInvalida_lancaValidationException() {
-        CommercialUnitItemRequest item = new CommercialUnitItemRequest("Loja 01", "Padaria", new BigDecimal("50.00"), new BigDecimal("-5.00"));
-        CommercialStageRequest request = new CommercialStageRequest(List.of(item));
+    @DisplayName("saveCommercialStage com dados inválidos deve lançar ValidationException antes de gravar")
+    void saveCommercialStage_dadosInvalidos_lancaValidationException() {
+        doThrow(new ValidationException(Map.of("espacos[0].cargaInstaladaKw", "inválida")))
+                .when(commercialStageService).validarEspacos(anyList());
+        CommercialStageRequest request = new CommercialStageRequest(
+                List.of(new EspacoComercialRequest("LOJAS", new BigDecimal("50.00"), new BigDecimal("-5.00"))));
 
         assertThrows(ValidationException.class, () -> projectService.saveCommercialStage(1L, request, 10L));
+        verify(commercialUnitRepository, never()).deleteByProjectId(anyLong());
     }
 
     @Test
@@ -1144,5 +1145,71 @@ class ProjectServiceTest {
     void saveSpecialLoadsStage_vagasSemPotencia_lancaValidationException() {
         SpecialLoadsStageRequest request = new SpecialLoadsStageRequest(4, null, null, null);
         assertThrows(ValidationException.class, () -> projectService.saveSpecialLoadsStage(1L, request, 10L));
+    }
+
+    @Test
+    @DisplayName("PATCH em projeto EM_ANALISE deve ser recusado (somente leitura, D1)")
+    void updateProjectPatch_emAnalise_lancaConflito() {
+        Project proj = new Project();
+        proj.setId(100L);
+        proj.setUser(user);
+        proj.setTitulo("Projeto em análise");
+        proj.setAtivo(true);
+        proj.setStatus(ProjectStatus.EM_ANALISE);
+        when(projectRepository.findById(100L)).thenReturn(Optional.of(proj));
+
+        ProjectUpdatePatchRequest patch = new ProjectUpdatePatchRequest();
+        patch.setTitulo("Novo nome");
+
+        assertThrows(neoguide.project.exception.ConflictException.class,
+                () -> projectService.updateProjectPatch(100L, patch, 10L));
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Totais: contam por situação; a soma é o total de todos")
+    void totais_contaPorSituacao() {
+        when(projectRepository.contarPorStatus(eq(10L), isNull())).thenReturn(List.of(
+                new Object[]{ProjectStatus.RASCUNHO, 3L},
+                new Object[]{ProjectStatus.EM_ANALISE, 2L},
+                new Object[]{ProjectStatus.AGUARDANDO_CORRECAO, 1L},
+                new Object[]{ProjectStatus.APROVADO, 4L},
+                new Object[]{ProjectStatus.REPROVADO, 1L}));
+
+        neoguide.project.dto.TotaisProjetosResponse totais = projectService.totais(10L, "  ");
+
+        assertEquals(11L, totais.todos());
+        assertEquals(3L, totais.rascunho());
+        assertEquals(2L, totais.emAnalise());
+        assertEquals(1L, totais.aguardandoCorrecao());
+        assertEquals(4L, totais.aprovado());
+        assertEquals(1L, totais.reprovado());
+    }
+
+    @Test
+    @DisplayName("Duplicação copia as etapas do projeto original (B-EP-11)")
+    void duplicateProject_copiaEtapas() {
+        Project original = new Project();
+        original.setId(50L);
+        original.setUser(user);
+        original.setTitulo("Original");
+        original.setTipoEdificacao(neoguide.project.model.TipoEdificacao.RESIDENCIAL_MULTIFAMILIAR);
+        original.setStatus(ProjectStatus.APROVADO);
+        original.setAtivo(true);
+        when(projectRepository.findById(50L)).thenReturn(Optional.of(original));
+        when(projectRepository.save(any(Project.class))).thenAnswer(inv -> {
+            Project p = inv.getArgument(0);
+            if (p.getId() == null) p.setId(51L);
+            return p;
+        });
+        neoguide.project.model.ResidentialTypology tipologia = new neoguide.project.model.ResidentialTypology(
+                original, "Tipo A", new BigDecimal("63.00"), 50, false, new BigDecimal("1.47"), new BigDecimal("73.50"));
+        when(residentialTypologyRepository.findByProjectIdOrderByIdAsc(50L)).thenReturn(List.of(tipologia));
+
+        ProjectResponse copia = projectService.duplicateProject(50L, 10L);
+
+        verify(residentialTypologyRepository, times(1)).save(any(neoguide.project.model.ResidentialTypology.class));
+        assertEquals("RESIDENCIAL_MULTIFAMILIAR", copia.getTipoEdificacao());
+        assertEquals(ProjectStatus.RASCUNHO.name(), copia.getStatus());
     }
 }

@@ -46,10 +46,12 @@ class CatalogoEntradaServiceTest {
     void setUp() {
         service = new CatalogoNormativoService(
                 veFactorRepository,
-                occupancyLoadRepository,
-                poolPumpRepository,
                 serviceEntranceRepository,
-                busbarRepository
+                busbarRepository,
+                null, null, null,
+                poolPumpRepository,
+                null, null,
+                occupancyLoadRepository
         );
     }
 

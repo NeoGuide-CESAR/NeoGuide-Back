@@ -1,7 +1,6 @@
 package neoguide.project.controller;
 
 import neoguide.project.dto.catalogo.BusbarCatalogResponse;
-import neoguide.project.dto.catalogo.OccupancyLoadResponse;
 import neoguide.project.dto.catalogo.PoolPumpFactorResponse;
 import neoguide.project.dto.catalogo.ServiceEntranceCatalogResponse;
 import neoguide.project.dto.catalogo.VeFactorResponse;
@@ -26,11 +25,6 @@ public class CatalogoNormativoController {
     @GetMapping("/fatores-recarga-ve")
     public ResponseEntity<List<VeFactorResponse>> getFatoresRecargaVe() {
         return ResponseEntity.ok(catalogoService.getFatoresRecargaVe());
-    }
-
-    @GetMapping("/cargas-minimas-ocupacao")
-    public ResponseEntity<List<OccupancyLoadResponse>> getCargasMinimasOcupacao() {
-        return ResponseEntity.ok(catalogoService.getCargasMinimasOcupacao());
     }
 
     @GetMapping("/fatores-bombas-piscina")
