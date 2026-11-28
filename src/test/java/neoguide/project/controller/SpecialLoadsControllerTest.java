@@ -8,6 +8,7 @@ import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.SpecialLoadsRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +52,9 @@ class SpecialLoadsControllerTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
     private User dono;
     private User outroUsuario;
     private String tokenDono;
@@ -59,9 +63,7 @@ class SpecialLoadsControllerTest {
 
     @BeforeEach
     void setUp() {
-        specialLoadsRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
 
         dono = userRepository.save(new User("Projetista Dono", "dono@special.com", passwordEncoder.encode("SenhaForte@123")));
         outroUsuario = userRepository.save(new User("Outro Projetista", "outro@special.com", passwordEncoder.encode("SenhaForte@123")));
@@ -82,9 +84,7 @@ class SpecialLoadsControllerTest {
 
     @AfterEach
     void tearDown() {
-        specialLoadsRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     @Test

@@ -146,7 +146,8 @@ class CatalogCommonAreaControllerTest {
     @Test
     @DisplayName("Endpoints de catálogo de áreas comuns devem funcionar com Bearer token JWT")
     void devePermitirAcessoComTokenValido() throws Exception {
-        User user = userRepository.save(new User("Projetista Catalogo", "catalogo@teste.com", passwordEncoder.encode("Senha123")));
+        User user = userRepository.findByEmail("catalogo@teste.com")
+                .orElseGet(() -> userRepository.save(new User("Projetista Catalogo", "catalogo@teste.com", passwordEncoder.encode("Senha123"))));
         String token = jwtService.generateToken(user);
 
         mockMvc.perform(get("/api/v1/catalogo/motores-padrao")

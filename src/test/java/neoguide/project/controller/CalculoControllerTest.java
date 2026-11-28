@@ -12,6 +12,8 @@ import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,8 @@ class CalculoControllerTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtService jwtService;
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     private User dono;
     private User outro;
@@ -60,16 +64,17 @@ class CalculoControllerTest {
 
     @BeforeEach
     void setUp() {
-        demandResultRepository.deleteAll();
-        residentialTypologyRepository.deleteAll();
-        commercialUnitRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
 
         dono = userRepository.save(new User("Projetista Dono", "dono@calculo.com", passwordEncoder.encode("SenhaForte@123")));
         outro = userRepository.save(new User("Outro Projetista", "outro@calculo.com", passwordEncoder.encode("SenhaForte@123")));
         tokenDono = jwtService.generateToken(dono);
         tokenOutro = jwtService.generateToken(outro);
+    }
+
+    @AfterEach
+    void tearDown() {
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     private Project novoProjeto(User usuario, TipoEdificacao tipo, String protocolo) {

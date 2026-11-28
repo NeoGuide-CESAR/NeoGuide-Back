@@ -3,10 +3,10 @@ package neoguide.project.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.model.User;
-import neoguide.project.repository.DemandResultRepository;
-import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,12 +35,7 @@ class PerfilControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
-    @Autowired private ProjectRepository projectRepository;
-    @Autowired private DemandResultRepository resultadoRepository;
-    @Autowired private neoguide.project.repository.CommercialUnitRepository espacoRepository;
-    @Autowired private neoguide.project.repository.ResidentialTypologyRepository tipologiaRepository;
-    @Autowired private neoguide.project.repository.CommonAreaLoadRepository cargaRepository;
-    @Autowired private neoguide.project.repository.SpecialLoadsRepository especiaisRepository;
+    @Autowired private TestDatabaseCleaner testDatabaseCleaner;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtService jwtService;
 
@@ -51,13 +46,7 @@ class PerfilControllerTest {
 
     @BeforeEach
     void setUp() {
-        resultadoRepository.deleteAll();
-        espacoRepository.deleteAll();
-        tipologiaRepository.deleteAll();
-        cargaRepository.deleteAll();
-        especiaisRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
         maria = new User("Maria Souza", "maria@perfil.com", passwordEncoder.encode(SENHA));
         maria.setCpfCnpj("12345678909");
         maria.setTelefone("81999998888");
@@ -65,6 +54,11 @@ class PerfilControllerTest {
         maria = userRepository.save(maria);
         joao = userRepository.save(new User("Joao Silva", "joao@perfil.com", passwordEncoder.encode(SENHA)));
         token = jwtService.generateToken(maria);
+    }
+
+    @AfterEach
+    void tearDown() {
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     private JsonNode corpo(MvcResult r) throws Exception {

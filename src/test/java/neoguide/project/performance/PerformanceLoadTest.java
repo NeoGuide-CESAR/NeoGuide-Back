@@ -9,6 +9,8 @@ import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -104,11 +106,15 @@ class PerformanceLoadTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
     private String token;
     private Project project;
 
     @BeforeEach
     void setUp() {
+        testDatabaseCleaner.cleanOperationalTables();
         User user = userRepository.findByEmail("perf.sla@neoguide.com")
                 .orElseGet(() -> userRepository.save(new User(
                         "Projetista Performance",
@@ -148,6 +154,11 @@ class PerformanceLoadTest {
             residentialTypologyRepository.save(tipologia);
             return saved;
         });
+    }
+
+    @AfterEach
+    void tearDown() {
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     @Test

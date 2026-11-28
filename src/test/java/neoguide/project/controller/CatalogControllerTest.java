@@ -104,8 +104,8 @@ class CatalogControllerTest {
     @Test
     @DisplayName("Endpoints de catálogo devem permitir acesso também quando autenticado com Bearer token")
     void devePermitirAcessoComTokenAutenticado() throws Exception {
-        User user = new User("Engenheiro Catalogo", "catalogo@neoguide.com", passwordEncoder.encode("senha123"));
-        user = userRepository.save(user);
+        User user = userRepository.findByEmail("catalogo@neoguide.com")
+                .orElseGet(() -> userRepository.save(new User("Engenheiro Catalogo", "catalogo@neoguide.com", passwordEncoder.encode("senha123"))));
         String token = jwtService.generateToken(user);
 
         mockMvc.perform(get("/api/v1/catalogo/faixas-area")

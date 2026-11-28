@@ -11,12 +11,13 @@ import neoguide.project.model.TipoEdificacao;
 import neoguide.project.model.User;
 import neoguide.project.repository.CommercialUnitRepository;
 import neoguide.project.repository.CommonAreaLoadRepository;
-import neoguide.project.repository.DemandResultRepository;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.SpecialLoadsRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ class ValidacaoNormativaTest {
     @Autowired private CommonAreaLoadRepository cargaRepository;
     @Autowired private CommercialUnitRepository espacoRepository;
     @Autowired private SpecialLoadsRepository especiaisRepository;
-    @Autowired private DemandResultRepository resultadoRepository;
+    @Autowired private TestDatabaseCleaner testDatabaseCleaner;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtService jwtService;
 
@@ -57,15 +58,14 @@ class ValidacaoNormativaTest {
 
     @BeforeEach
     void setUp() {
-        resultadoRepository.deleteAll();
-        tipologiaRepository.deleteAll();
-        cargaRepository.deleteAll();
-        espacoRepository.deleteAll();
-        especiaisRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
         User dono = userRepository.save(new User("Dono", "dono@regras.com", passwordEncoder.encode("SenhaForte@123")));
         token = jwtService.generateToken(dono);
+    }
+
+    @AfterEach
+    void tearDown() {
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     private Project projeto(TipoEdificacao tipo, boolean ve, boolean incendio) {

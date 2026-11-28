@@ -24,13 +24,9 @@ import neoguide.project.engine.model.commonarea.CommonAreaCalculationResult;
 import neoguide.project.engine.normativo.TabelasNormativas;
 import neoguide.project.model.DemandResults;
 import neoguide.project.model.Project;
-import neoguide.project.repository.CommercialUnitRepository;
-import neoguide.project.repository.CommonAreaLoadRepository;
 import neoguide.project.repository.DemandResultsRepository;
 import neoguide.project.repository.ProjectRepository;
-import neoguide.project.repository.ResidentialTypologyRepository;
-import neoguide.project.repository.SpecialLoadsRepository;
-import neoguide.project.repository.UserRepository;
+import neoguide.project.support.TestDatabaseCleaner;
 import neoguide.project.validator.NormativeRuleValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,28 +71,13 @@ class NeoenergiaMemorialCrossValidationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private ProjectRepository projectRepository;
-
-    @Autowired
-    private ResidentialTypologyRepository residentialTypologyRepository;
-
-    @Autowired
-    private CommonAreaLoadRepository commonAreaLoadRepository;
-
-    @Autowired
-    private CommercialUnitRepository commercialUnitRepository;
-
-    @Autowired
-    private SpecialLoadsRepository specialLoadsRepository;
 
     @Autowired
     private DemandResultsRepository demandResultsRepository;
 
     @Autowired
-    private neoguide.project.repository.DemandResultRepository demandResultRepository;
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     private static BigDecimal round2(BigDecimal value) {
         return value.setScale(2, RoundingMode.HALF_UP);
@@ -471,23 +452,12 @@ class NeoenergiaMemorialCrossValidationTest {
 
         @BeforeEach
         void cleanUpBefore() {
-            limparBanco();
+            testDatabaseCleaner.cleanOperationalTables();
         }
 
         @AfterEach
         void cleanUpAfter() {
-            limparBanco();
-        }
-
-        private void limparBanco() {
-            demandResultsRepository.deleteAll();
-            demandResultRepository.deleteAll();
-            residentialTypologyRepository.deleteAll();
-            commonAreaLoadRepository.deleteAll();
-            commercialUnitRepository.deleteAll();
-            specialLoadsRepository.deleteAll();
-            projectRepository.deleteAll();
-            userRepository.deleteAll();
+            testDatabaseCleaner.cleanOperationalTables();
         }
 
         private String registrarELogarJwt(String email, String nome) throws Exception {

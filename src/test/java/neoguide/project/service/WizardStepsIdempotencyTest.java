@@ -17,12 +17,12 @@ import neoguide.project.model.SpecialLoads;
 import neoguide.project.model.User;
 import neoguide.project.repository.CommercialUnitRepository;
 import neoguide.project.repository.CommonAreaLoadRepository;
-import neoguide.project.repository.DemandResultsRepository;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.SpecialLoadsRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +72,7 @@ class WizardStepsIdempotencyTest {
     private SpecialLoadsRepository specialLoadsRepository;
 
     @Autowired
-    private DemandResultsRepository demandResultsRepository;
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -87,7 +87,7 @@ class WizardStepsIdempotencyTest {
 
     @BeforeEach
     void setUp() {
-        limparBanco();
+        testDatabaseCleaner.cleanOperationalTables();
 
         User dono = userRepository.save(new User(
                 "Engenheiro Idempotencia",
@@ -109,17 +109,7 @@ class WizardStepsIdempotencyTest {
 
     @AfterEach
     void tearDown() {
-        limparBanco();
-    }
-
-    private void limparBanco() {
-        demandResultsRepository.deleteAll();
-        commonAreaLoadRepository.deleteAll();
-        specialLoadsRepository.deleteAll();
-        commercialUnitRepository.deleteAll();
-        residentialTypologyRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     @Test

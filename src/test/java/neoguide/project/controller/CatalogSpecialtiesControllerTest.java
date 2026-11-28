@@ -95,7 +95,8 @@ class CatalogSpecialtiesControllerTest {
     @Test
     @DisplayName("Endpoints de catálogo de especialidades devem funcionar com Bearer token JWT")
     void devePermitirAcessoComTokenValido() throws Exception {
-        User user = userRepository.save(new User("Projetista US16", "projetista.us16@teste.com", passwordEncoder.encode("Senha123")));
+        User user = userRepository.findByEmail("projetista.us16@teste.com")
+                .orElseGet(() -> userRepository.save(new User("Projetista US16", "projetista.us16@teste.com", passwordEncoder.encode("Senha123"))));
         String token = jwtService.generateToken(user);
 
         mockMvc.perform(get("/api/v1/catalogo/motores-monofasicos")

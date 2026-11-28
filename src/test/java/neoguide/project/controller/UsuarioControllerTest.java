@@ -1,18 +1,14 @@
 package neoguide.project.controller;
 
-import neoguide.project.repository.CommonAreaLoadRepository;
-import neoguide.project.repository.CommercialUnitRepository;
-import neoguide.project.repository.SpecialLoadsRepository;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import neoguide.project.dto.AlterarSenhaDTO;
 import neoguide.project.dto.UsuarioUpdateDTO;
 import neoguide.project.model.User;
 import neoguide.project.model.UserRole;
-import neoguide.project.repository.ProjectRepository;
-import neoguide.project.repository.ResidentialTypologyRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,18 +41,7 @@ class UsuarioControllerTest {
     private UserRepository userRepository;
 
     @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private ResidentialTypologyRepository residentialTypologyRepository;
-    @Autowired
-    private CommonAreaLoadRepository commonAreaLoadRepository;
-
-    @Autowired
-    private CommercialUnitRepository commercialUnitRepository;
-
-    @Autowired
-    private SpecialLoadsRepository specialLoadsRepository;
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -69,12 +54,7 @@ class UsuarioControllerTest {
 
     @BeforeEach
     void setUp() {
-        specialLoadsRepository.deleteAll();
-        commercialUnitRepository.deleteAll();
-        commonAreaLoadRepository.deleteAll();
-        residentialTypologyRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
 
         usuario = new User(
                 "Engenheiro Teste",
@@ -88,6 +68,11 @@ class UsuarioControllerTest {
         );
         usuario = userRepository.save(usuario);
         token = jwtService.generateToken(usuario);
+    }
+
+    @AfterEach
+    void tearDown() {
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     @Test

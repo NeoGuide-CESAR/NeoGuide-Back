@@ -10,6 +10,7 @@ import neoguide.project.repository.CommercialUnitRepository;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +57,9 @@ class CommercialControllerTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private TestDatabaseCleaner testDatabaseCleaner;
+
     private User dono;
     private User outroUsuario;
     private String tokenDono;
@@ -64,9 +68,7 @@ class CommercialControllerTest {
 
     @BeforeEach
     void setUp() {
-        commercialUnitRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
 
         dono = userRepository.save(new User("Projetista Dono", "dono@comercial.com", passwordEncoder.encode("SenhaForte@123")));
         outroUsuario = userRepository.save(new User("Outro Projetista", "outro@comercial.com", passwordEncoder.encode("SenhaForte@123")));
@@ -87,9 +89,7 @@ class CommercialControllerTest {
 
     @AfterEach
     void tearDown() {
-        commercialUnitRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     private static EspacoComercialRequest espaco(String codigo, String area, String carga) {

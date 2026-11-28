@@ -25,14 +25,11 @@ import neoguide.project.model.Project;
 import neoguide.project.model.ProjectStatus;
 import neoguide.project.model.ProjectType;
 import neoguide.project.model.User;
-import neoguide.project.repository.CommercialUnitRepository;
-import neoguide.project.repository.CommonAreaLoadRepository;
 import neoguide.project.repository.DemandResultsRepository;
 import neoguide.project.repository.ProjectRepository;
-import neoguide.project.repository.ResidentialTypologyRepository;
-import neoguide.project.repository.SpecialLoadsRepository;
 import neoguide.project.repository.UserRepository;
 import neoguide.project.security.jwt.JwtService;
+import neoguide.project.support.TestDatabaseCleaner;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -52,16 +49,7 @@ class NormativeValidationControllerTest {
     private DemandResultsRepository demandResultsRepository;
 
     @Autowired
-    private ResidentialTypologyRepository residentialTypologyRepository;
-
-    @Autowired
-    private CommonAreaLoadRepository commonAreaLoadRepository;
-
-    @Autowired
-    private CommercialUnitRepository commercialUnitRepository;
-
-    @Autowired
-    private SpecialLoadsRepository specialLoadsRepository;
+    private TestDatabaseCleaner testDatabaseCleaner;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -78,7 +66,7 @@ class NormativeValidationControllerTest {
 
     @BeforeEach
     void setUp() {
-        limparBanco();
+        testDatabaseCleaner.cleanOperationalTables();
 
         dono = userRepository.save(new User("Projetista Dono", "dono.val@empresa.com", passwordEncoder.encode("SenhaForte@123")));
         outroUsuario = userRepository.save(new User("Outro Projetista", "outro.val@empresa.com", passwordEncoder.encode("SenhaForte@123")));
@@ -131,17 +119,7 @@ class NormativeValidationControllerTest {
 
     @AfterEach
     void tearDown() {
-        limparBanco();
-    }
-
-    private void limparBanco() {
-        demandResultsRepository.deleteAll();
-        specialLoadsRepository.deleteAll();
-        commercialUnitRepository.deleteAll();
-        commonAreaLoadRepository.deleteAll();
-        residentialTypologyRepository.deleteAll();
-        projectRepository.deleteAll();
-        userRepository.deleteAll();
+        testDatabaseCleaner.cleanOperationalTables();
     }
 
     @Test
