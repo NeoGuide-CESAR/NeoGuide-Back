@@ -6,11 +6,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Última demanda calculada de um projeto (tabela demand_results). Guarda as parcelas usadas no cálculo e a
+ * Última demanda calculada de um projeto (tabela project_demand_results). Guarda as parcelas usadas no cálculo e a
  * impressão digital dos insumos: se os insumos atuais mudarem, o resultado vira DESATUALIZADO.
  */
 @Entity
-@Table(name = "demand_results")
+@Table(name = "project_demand_results")
 public class DemandResult {
 
     @Id
