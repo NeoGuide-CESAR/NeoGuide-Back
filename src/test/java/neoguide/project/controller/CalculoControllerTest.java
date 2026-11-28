@@ -1,7 +1,9 @@
 package neoguide.project.controller;
 
+import jakarta.persistence.Table;
 import neoguide.project.model.CommercialUnit;
 import neoguide.project.model.DemandResult;
+import neoguide.project.model.DemandResults;
 import neoguide.project.model.Project;
 import neoguide.project.model.ResidentialTypology;
 import neoguide.project.model.TipoEdificacao;
@@ -28,6 +30,8 @@ import java.math.BigDecimal;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -266,5 +270,18 @@ class CalculoControllerTest {
             String inicio = premissa.texto().substring(0, 18);
             assertTrue(texto.contains(inicio), "premissa ausente do memorial: " + inicio);
         }
+    }
+
+    @Test
+    @DisplayName("DemandResult usa tabela própria project_demand_results isolada da legada demand_results e de DemandResults")
+    void demandResultUsaTabelaPropriaIsolada() {
+        Table demandResultTable = DemandResult.class.getAnnotation(Table.class);
+        Table demandResultsTable = DemandResults.class.getAnnotation(Table.class);
+
+        assertNotNull(demandResultTable);
+        assertNotNull(demandResultsTable);
+        assertEquals("project_demand_results", demandResultTable.name());
+        assertNotEquals("demand_results", demandResultTable.name());
+        assertNotEquals(demandResultsTable.name(), demandResultTable.name());
     }
 }
