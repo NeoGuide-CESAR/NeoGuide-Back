@@ -95,6 +95,9 @@ class NeoenergiaMemorialCrossValidationTest {
     @Autowired
     private DemandResultsRepository demandResultsRepository;
 
+    @Autowired
+    private neoguide.project.repository.DemandResultRepository demandResultRepository;
+
     private static BigDecimal round2(BigDecimal value) {
         return value.setScale(2, RoundingMode.HALF_UP);
     }
@@ -478,6 +481,7 @@ class NeoenergiaMemorialCrossValidationTest {
 
         private void limparBanco() {
             demandResultsRepository.deleteAll();
+            demandResultRepository.deleteAll();
             residentialTypologyRepository.deleteAll();
             commonAreaLoadRepository.deleteAll();
             commercialUnitRepository.deleteAll();
@@ -569,7 +573,7 @@ class NeoenergiaMemorialCrossValidationTest {
                     .isEqualByComparingTo("2.70");
 
             // 6. POST /api/v1/projects/{id}/calcular (200 CONCLUIDO)
-            MvcResult calcResult = mockMvc.perform(post("/api/v1/projects/" + projectId + "/calcular")
+            MvcResult calcResult = mockMvc.perform(post("/api/v1/projects/" + projectId + "/motor/calcular")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -604,7 +608,7 @@ class NeoenergiaMemorialCrossValidationTest {
             assertThat(persisted.getCapacidadeBarramentoA()).isEqualTo(449);
 
             // 7. GET /api/v1/projects/{id}/validacao-normativa (200 CONFORME_DIS_NOR_053)
-            MvcResult auditResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/validacao-normativa")
+            MvcResult auditResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/motor/validacao-normativa")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -618,7 +622,7 @@ class NeoenergiaMemorialCrossValidationTest {
                     .isEqualTo("BAIXA_TENSAO");
 
             // 8. GET /api/v1/projects/{id}/memorial-pdf (200 application/pdf iniciando com %PDF-)
-            MvcResult pdfResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/memorial-pdf")
+            MvcResult pdfResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/motor/memorial-pdf")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_PDF))
@@ -644,7 +648,7 @@ class NeoenergiaMemorialCrossValidationTest {
                                     CanonicalMemorialTestDataFactory.cenario2ResidentialStageRequest(true))))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/api/v1/projects/" + studioId + "/calcular")
+            mockMvc.perform(post("/api/v1/projects/" + studioId + "/motor/calcular")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk());
 
@@ -662,7 +666,7 @@ class NeoenergiaMemorialCrossValidationTest {
                                     CanonicalMemorialTestDataFactory.cenario2ResidentialStageRequest(false))))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/api/v1/projects/" + convId + "/calcular")
+            mockMvc.perform(post("/api/v1/projects/" + convId + "/motor/calcular")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk());
 
@@ -702,7 +706,7 @@ class NeoenergiaMemorialCrossValidationTest {
                                     CanonicalMemorialTestDataFactory.cenario3VeViolacaoStageRequest())))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/api/v1/projects/" + projectId + "/calcular")
+            mockMvc.perform(post("/api/v1/projects/" + projectId + "/motor/calcular")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk());
 
@@ -710,7 +714,7 @@ class NeoenergiaMemorialCrossValidationTest {
             assertThat(violacaoPersisted.getDemandaVeKva()).isEqualByComparingTo("95.46");
             assertThat(violacaoPersisted.getDemandaGlobalKva()).isEqualByComparingTo("180.23");
 
-            MvcResult auditViolacaoRes = mockMvc.perform(get("/api/v1/projects/" + projectId + "/validacao-normativa")
+            MvcResult auditViolacaoRes = mockMvc.perform(get("/api/v1/projects/" + projectId + "/motor/validacao-normativa")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -722,6 +726,12 @@ class NeoenergiaMemorialCrossValidationTest {
                     .isEqualByComparingTo("55.76");
 
             // Caso 3B: Adequação abaixo do limite (100 aptos + Ds=30 + 8 vagas VE x 3,7kW -> Dve=29,60 -> uso=26,49% <= 40%)
+            // Projeto concluído é somente leitura: reabre para ajustar as etapas, como o usuário faria ao duplicar/editar.
+            projectRepository.findById(projectId).ifPresent(p -> {
+                p.setStatus(neoguide.project.model.ProjectStatus.RASCUNHO);
+                projectRepository.save(p);
+            });
+
             mockMvc.perform(put("/api/v1/projects/" + projectId + "/etapa-residencial")
                             .header("Authorization", "Bearer " + token)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -736,11 +746,11 @@ class NeoenergiaMemorialCrossValidationTest {
                                     CanonicalMemorialTestDataFactory.cenario3VeConformeStageRequest())))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(post("/api/v1/projects/" + projectId + "/calcular")
+            mockMvc.perform(post("/api/v1/projects/" + projectId + "/motor/calcular")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk());
 
-            MvcResult auditConformeRes = mockMvc.perform(get("/api/v1/projects/" + projectId + "/validacao-normativa")
+            MvcResult auditConformeRes = mockMvc.perform(get("/api/v1/projects/" + projectId + "/motor/validacao-normativa")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -786,7 +796,7 @@ class NeoenergiaMemorialCrossValidationTest {
                                     CanonicalMemorialTestDataFactory.cenario4SpecialLoadsStageRequest())))
                     .andExpect(status().isOk());
 
-            MvcResult calcResult = mockMvc.perform(post("/api/v1/projects/" + projectId + "/calcular")
+            MvcResult calcResult = mockMvc.perform(post("/api/v1/projects/" + projectId + "/motor/calcular")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -807,7 +817,7 @@ class NeoenergiaMemorialCrossValidationTest {
             assertThat(persisted.getDemandaGlobalKva()).isEqualByComparingTo("367.18");
             assertThat(persisted.getDemandaQdgKva()).isEqualByComparingTo("361.16");
 
-            MvcResult auditResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/validacao-normativa")
+            MvcResult auditResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/motor/validacao-normativa")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andReturn();
@@ -818,7 +828,7 @@ class NeoenergiaMemorialCrossValidationTest {
             assertThat(new BigDecimal(auditJson.get("detalhesTecnicos").get("potenciaNominalTrafoKva").asText()))
                     .isEqualByComparingTo("500.0");
 
-            MvcResult pdfResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/memorial-pdf")
+            MvcResult pdfResult = mockMvc.perform(get("/api/v1/projects/" + projectId + "/motor/memorial-pdf")
                             .header("Authorization", "Bearer " + token))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_PDF))

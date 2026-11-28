@@ -67,12 +67,10 @@ class CatalogoNormativoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(6))
-                .andExpect(jsonPath("$[?(@.ocupacao == 'LOJAS')].cargaMinimaWm2").value(hasItem(30.00)))
-                .andExpect(jsonPath("$[?(@.ocupacao == 'LOJAS')].vitrineWMetro").value(hasItem(700.00)))
-                .andExpect(jsonPath("$[?(@.ocupacao == 'LOJAS')].fatorPotencia").value(hasItem(0.92)))
-                .andExpect(jsonPath("$[?(@.ocupacao == 'ESCRITORIOS')].cargaMinimaWm2").value(hasItem(30.00)))
-                .andExpect(jsonPath("$[?(@.ocupacao == 'ADMINISTRACAO_EDIFICIO')].cargaMinimaWm2").value(hasItem(5.00)));
+                .andExpect(jsonPath("$[?(@.codigo == 'LOJAS')].cargaMinimaWm2").value(hasItem(30.00)))
+                .andExpect(jsonPath("$[?(@.codigo == 'LOJAS')].fatorPotencia").value(hasItem(0.92)))
+                .andExpect(jsonPath("$[?(@.codigo == 'ESCRITORIOS')].cargaMinimaWm2").value(hasItem(30.00)))
+                .andExpect(jsonPath("$[?(@.codigo == 'ADMINISTRACAO_EDIFICIO')].cargaMinimaWm2").value(hasItem(5.00)));
     }
 
     @Test

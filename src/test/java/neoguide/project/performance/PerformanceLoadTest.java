@@ -130,6 +130,9 @@ class PerformanceLoadTest {
             created.setStatus(ProjectStatus.RASCUNHO);
             created.setEtapaAtual(2);
             created.setMunicipio("Recife");
+            created.setTipoEdificacao(neoguide.project.model.TipoEdificacao.RESIDENCIAL_MULTIFAMILIAR);
+            created.setCep("50050000");
+            created.setEndereco("Rua do Exemplo, 120");
             created.setAtivo(true);
             Project saved = projectRepository.save(created);
 
@@ -171,7 +174,7 @@ class PerformanceLoadTest {
     @DisplayName("SLA: Simulação stateless POST /api/v1/simulacao/pre-calculo-etapa deve ter latência média pós-warmup < 20ms")
     void simulationEndpoint_shouldMeet20msSla() throws Exception {
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
-            mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+            mockMvc.perform(post("/api/v1/simulacao/motor/pre-calculo-etapa")
                             .header("Authorization", "Bearer " + token)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(SIMULATION_PAYLOAD))
@@ -181,7 +184,7 @@ class PerformanceLoadTest {
         List<Double> latenciesMs = new ArrayList<>(SAMPLE_ITERATIONS);
         for (int i = 0; i < SAMPLE_ITERATIONS; i++) {
             long start = System.nanoTime();
-            mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+            mockMvc.perform(post("/api/v1/simulacao/motor/pre-calculo-etapa")
                             .header("Authorization", "Bearer " + token)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(SIMULATION_PAYLOAD))
@@ -225,7 +228,7 @@ class PerformanceLoadTest {
         // Warm-up prévio para evitar jitter de compilação JIT durante rajada concorrente
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
             mockMvc.perform(get("/api/v1/catalogo/faixas-area")).andExpect(status().isOk());
-            mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+            mockMvc.perform(post("/api/v1/simulacao/motor/pre-calculo-etapa")
                             .header("Authorization", "Bearer " + token)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(SIMULATION_PAYLOAD))
@@ -252,7 +255,7 @@ class PerformanceLoadTest {
                         if (idx % 2 == 0) {
                             result = mockMvc.perform(get("/api/v1/catalogo/faixas-area")).andReturn();
                         } else {
-                            result = mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+                            result = mockMvc.perform(post("/api/v1/simulacao/motor/pre-calculo-etapa")
                                             .header("Authorization", "Bearer " + token)
                                             .contentType(MediaType.APPLICATION_JSON)
                                             .content(SIMULATION_PAYLOAD))

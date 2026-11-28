@@ -151,7 +151,7 @@ class MemorialPdfControllerTest {
     @Test
     @DisplayName("GET /api/v1/projects/{id}/memorial-pdf deve retornar 200 OK com PDF valido e headers de anexo")
     void getMemorialPdf_deveRetornar200ComHeadersCorretos() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/v1/projects/" + projetoConsolidado.getId() + "/memorial-pdf")
+        MvcResult result = mockMvc.perform(get("/api/v1/projects/" + projetoConsolidado.getId() + "/motor/memorial-pdf")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", MediaType.APPLICATION_PDF_VALUE))
@@ -167,9 +167,9 @@ class MemorialPdfControllerTest {
     }
 
     @Test
-    @DisplayName("GET deve responder também no alias /projects/{id}/memorial-pdf")
+    @DisplayName("GET deve responder também no alias /projects/{id}/motor/memorial-pdf")
     void deveResponderNoAliasComSucesso() throws Exception {
-        mockMvc.perform(get("/projects/" + projetoConsolidado.getId() + "/memorial-pdf")
+        mockMvc.perform(get("/projects/" + projetoConsolidado.getId() + "/motor/memorial-pdf")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", MediaType.APPLICATION_PDF_VALUE));
@@ -178,7 +178,7 @@ class MemorialPdfControllerTest {
     @Test
     @DisplayName("GET deve retornar 400 Bad Request quando projeto estiver em RASCUNHO (mesmo com Accept application/pdf)")
     void getMemorialPdf_deveRetornar400QuandoProjetoNaoCalculado() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoRascunho.getId() + "/memorial-pdf")
+        mockMvc.perform(get("/api/v1/projects/" + projetoRascunho.getId() + "/motor/memorial-pdf")
                         .header("Authorization", "Bearer " + tokenDono)
                         .accept(MediaType.APPLICATION_PDF))
                 .andExpect(status().isBadRequest())
@@ -188,14 +188,14 @@ class MemorialPdfControllerTest {
     @Test
     @DisplayName("GET deve retornar 401 Unauthorized quando sem autenticacao")
     void getMemorialPdf_deveRetornar401QuandoNaoAutenticado() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoConsolidado.getId() + "/memorial-pdf"))
+        mockMvc.perform(get("/api/v1/projects/" + projetoConsolidado.getId() + "/motor/memorial-pdf"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("GET deve retornar 403 Forbidden quando consultado por outro usuario")
     void getMemorialPdf_deveRetornar403QuandoNaoEhDono() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoConsolidado.getId() + "/memorial-pdf")
+        mockMvc.perform(get("/api/v1/projects/" + projetoConsolidado.getId() + "/motor/memorial-pdf")
                         .header("Authorization", "Bearer " + tokenOutro))
                 .andExpect(status().isForbidden());
     }
@@ -203,7 +203,7 @@ class MemorialPdfControllerTest {
     @Test
     @DisplayName("GET deve retornar 404 Not Found quando projeto nao existir")
     void getMemorialPdf_deveRetornar404QuandoInexistente() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/99999/memorial-pdf")
+        mockMvc.perform(get("/api/v1/projects/99999/motor/memorial-pdf")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isNotFound());
     }

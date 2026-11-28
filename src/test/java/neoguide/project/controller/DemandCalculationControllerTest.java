@@ -113,7 +113,7 @@ class DemandCalculationControllerTest {
     @Test
     @DisplayName("POST /api/v1/projects/{id}/calcular autenticado com dados válidos deve retornar 200 OK com payload completo")
     void shouldCalculateProjectSuccessfully() throws Exception {
-        mockMvc.perform(post("/api/v1/projects/" + projetoDono.getId() + "/calcular")
+        mockMvc.perform(post("/api/v1/projects/" + projetoDono.getId() + "/motor/calcular")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId", is(projetoDono.getId().intValue())))
@@ -132,7 +132,7 @@ class DemandCalculationControllerTest {
     @Test
     @DisplayName("POST /projects/{id}/calcular (alias retrocompatível) deve retornar 200 OK")
     void shouldCalculateProjectUsingAliasRouteSuccessfully() throws Exception {
-        mockMvc.perform(post("/projects/" + projetoDono.getId() + "/calcular")
+        mockMvc.perform(post("/projects/" + projetoDono.getId() + "/motor/calcular")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status", is("CONCLUIDO")));
@@ -141,7 +141,7 @@ class DemandCalculationControllerTest {
     @Test
     @DisplayName("POST /api/v1/projects/{id}/calcular sem tipologias residenciais deve retornar 422 Unprocessable Entity")
     void shouldReturn422WhenNoResidentialTypologies() throws Exception {
-        mockMvc.perform(post("/api/v1/projects/" + projetoSemTipologia.getId() + "/calcular")
+        mockMvc.perform(post("/api/v1/projects/" + projetoSemTipologia.getId() + "/motor/calcular")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.status", is(422)))
@@ -151,7 +151,7 @@ class DemandCalculationControllerTest {
     @Test
     @DisplayName("POST /api/v1/projects/{id}/calcular por usuário que não é proprietário deve retornar 403 Forbidden")
     void shouldReturn403WhenUserNotOwner() throws Exception {
-        mockMvc.perform(post("/api/v1/projects/" + projetoDono.getId() + "/calcular")
+        mockMvc.perform(post("/api/v1/projects/" + projetoDono.getId() + "/motor/calcular")
                         .header("Authorization", "Bearer " + tokenOutro))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status", is(403)));
@@ -160,7 +160,7 @@ class DemandCalculationControllerTest {
     @Test
     @DisplayName("POST /api/v1/projects/999/calcular para projeto inexistente deve retornar 404 Not Found")
     void shouldReturn404WhenProjectNotFound() throws Exception {
-        mockMvc.perform(post("/api/v1/projects/999/calcular")
+        mockMvc.perform(post("/api/v1/projects/999/motor/calcular")
                         .header("Authorization", "Bearer " + tokenDono))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)));
@@ -169,7 +169,7 @@ class DemandCalculationControllerTest {
     @Test
     @DisplayName("POST /api/v1/projects/{id}/calcular sem autenticação deve retornar 401 Unauthorized")
     void shouldReturn401WhenNotAuthenticated() throws Exception {
-        mockMvc.perform(post("/api/v1/projects/" + projetoDono.getId() + "/calcular"))
+        mockMvc.perform(post("/api/v1/projects/" + projetoDono.getId() + "/motor/calcular"))
                 .andExpect(status().isUnauthorized());
     }
 }

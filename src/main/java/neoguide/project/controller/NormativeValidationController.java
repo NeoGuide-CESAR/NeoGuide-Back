@@ -27,7 +27,7 @@ public class NormativeValidationController {
         this.userRepository = userRepository;
     }
 
-    @GetMapping("/{id}/validacao-normativa")
+    @GetMapping("/{id}/motor/validacao-normativa")
     public ResponseEntity<NormativeValidationResponse> validateNormative(
             @PathVariable("id") Long id,
             Authentication authentication) {
