@@ -6,6 +6,7 @@ import neoguide.project.model.ProjectType;
 import neoguide.project.model.User;
 import neoguide.project.repository.ProjectRepository;
 import neoguide.project.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -31,20 +32,27 @@ public class DataSeeder implements CommandLineRunner {
     private final ProjectRepository projectRepository;
     private final PasswordEncoder passwordEncoder;
     private final neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder;
+    private final boolean seedDemoData;
 
     public DataSeeder(UserRepository userRepository, ProjectRepository projectRepository,
                       PasswordEncoder passwordEncoder,
-                      neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder) {
+                      neoguide.project.config.seeder.NormativeDataSeeder normativeDataSeeder,
+                      @Value("${neoguide.seed.demo-data:true}") boolean seedDemoData) {
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.passwordEncoder = passwordEncoder;
         this.normativeDataSeeder = normativeDataSeeder;
+        this.seedDemoData = seedDemoData;
     }
 
     @Override
     public void run(String... args) {
-        seedUsers();
-        seedProjects();
+        // Usuários e projetos de demonstração só em dev/teste (neoguide.seed.demo-data=false em produção).
+        if (seedDemoData) {
+            seedUsers();
+            seedProjects();
+        }
+        // Tabelas normativas (catálogo): sempre, em qualquer ambiente. Idempotente: só cria/atualiza o que falta.
         normativeDataSeeder.seedAll();
     }
 

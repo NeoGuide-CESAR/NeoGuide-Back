@@ -29,6 +29,12 @@ class ApplicationConfigurationPropertiesTest {
         assertFalse(propertySources.isEmpty(), "application.yaml deve conter property sources válidas");
         PropertySource<?> source = propertySources.get(0);
 
+        assertEquals("${SPRING_PROFILES_ACTIVE:dev}", source.getProperty("spring.profiles.active"),
+                "Sem SPRING_PROFILES_ACTIVE, o perfil padrão deve ser dev");
+        assertEquals("org.hibernate.dialect.PostgreSQLDialect",
+                source.getProperty("spring.jpa.properties.hibernate.dialect"));
+
+        source = yamlLoader.load("dev", new ClassPathResource("application-dev.yaml")).get(0);
         assertEquals("${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/neoguide_db}",
                 source.getProperty("spring.datasource.url"));
         assertEquals("${SPRING_DATASOURCE_USERNAME:neoguide_user}",
@@ -39,18 +45,14 @@ class ApplicationConfigurationPropertiesTest {
                 source.getProperty("spring.datasource.driver-class-name"));
         assertEquals("${SPRING_JPA_HIBERNATE_DDL_AUTO:update}",
                 source.getProperty("spring.jpa.hibernate.ddl-auto"));
-        assertEquals("org.hibernate.dialect.PostgreSQLDialect",
-                source.getProperty("spring.jpa.properties.hibernate.dialect"));
     }
 
     @Test
     @DisplayName("Garante que as propriedades padrão são resolvidas com os valores esperados na ausência de variáveis de ambiente")
     void testDefaultResolvedPropertyValues() throws IOException {
         MockEnvironment environment = new MockEnvironment();
-        List<PropertySource<?>> propertySources = yamlLoader.load("applicationConfig", new ClassPathResource("application.yaml"));
-        for (PropertySource<?> ps : propertySources) {
-            environment.getPropertySources().addLast(ps);
-        }
+        carregar(environment, "application-dev.yaml");
+        carregar(environment, "application.yaml");
 
         assertEquals("jdbc:postgresql://localhost:5432/neoguide_db",
                 environment.getProperty("spring.datasource.url"));
@@ -79,10 +81,8 @@ class ApplicationConfigurationPropertiesTest {
         envVariables.setProperty("SPRING_JPA_HIBERNATE_DDL_AUTO", "validate");
         environment.getPropertySources().addFirst(envVariables);
 
-        List<PropertySource<?>> propertySources = yamlLoader.load("applicationConfig", new ClassPathResource("application.yaml"));
-        for (PropertySource<?> ps : propertySources) {
-            environment.getPropertySources().addLast(ps);
-        }
+        carregar(environment, "application-dev.yaml");
+        carregar(environment, "application.yaml");
 
         assertEquals("jdbc:postgresql://neoguide-db:5432/neoguide_prod",
                 environment.getProperty("spring.datasource.url"));
@@ -92,6 +92,43 @@ class ApplicationConfigurationPropertiesTest {
                 environment.getProperty("spring.datasource.password"));
         assertEquals("validate",
                 environment.getProperty("spring.jpa.hibernate.ddl-auto"));
+    }
+
+    @Test
+    @DisplayName("Perfil prod não tem valores padrão para credenciais, chave JWT e origem do front, e não cria dados de demonstração")
+    void testProdProfileRequiresEnvironmentVariables() throws IOException {
+        MockEnvironment environment = new MockEnvironment();
+        carregar(environment, "application-prod.yaml");
+        for (String chave : List.of("spring.datasource.url", "spring.datasource.username", "spring.datasource.password",
+                "security.jwt.secret", "spring.configuration.host-front-end")) {
+            assertThrows(IllegalArgumentException.class, () -> environment.getProperty(chave),
+                    chave + " deve ser obrigatória em prod (sem padrão)");
+        }
+        assertEquals("false", environment.getProperty("springdoc.swagger-ui.enabled"));
+        assertEquals("never", environment.getProperty("server.error.include-message"));
+        assertEquals("false", environment.getProperty("neoguide.seed.demo-data"));
+    }
+
+    @Test
+    @DisplayName("Perfil prod lê banco, JWT e CORS das variáveis de ambiente")
+    void testProdProfileReadsEnvironmentVariables() throws IOException {
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("SPRING_DATASOURCE_URL", "jdbc:postgresql://db:5432/neoguide")
+                .withProperty("SPRING_DATASOURCE_USERNAME", "u")
+                .withProperty("SPRING_DATASOURCE_PASSWORD", "p")
+                .withProperty("SECURITY_JWT_SECRET", "segredo-de-producao-com-mais-de-32-bytes-ok")
+                .withProperty("HOST_FRONT_END", "https://neoguide.exemplo.com");
+        carregar(environment, "application-prod.yaml");
+
+        assertEquals("jdbc:postgresql://db:5432/neoguide", environment.getProperty("spring.datasource.url"));
+        assertEquals("segredo-de-producao-com-mais-de-32-bytes-ok", environment.getProperty("security.jwt.secret"));
+        assertEquals("https://neoguide.exemplo.com", environment.getProperty("spring.configuration.host-front-end"));
+    }
+
+    private void carregar(MockEnvironment environment, String arquivo) throws IOException {
+        for (PropertySource<?> ps : yamlLoader.load(arquivo, new ClassPathResource(arquivo))) {
+            environment.getPropertySources().addLast(ps);
+        }
     }
 
     @Test
