@@ -13,7 +13,7 @@ import neoguide.project.dto.simulation.PreCalculationResponse;
 import neoguide.project.service.PreCalculationService;
 
 @RestController
-@RequestMapping(value = {"/api/v1/simulacao", "/simulacao"}, produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = {"/api/v1/simulacao/motor", "/simulacao/motor"}, produces = MediaType.APPLICATION_JSON_VALUE)
 public class SimulationController {
 
     private final PreCalculationService preCalculationService;

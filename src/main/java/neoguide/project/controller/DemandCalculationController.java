@@ -31,7 +31,7 @@ public class DemandCalculationController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping("/{id}/calcular")
+    @PostMapping("/{id}/motor/calcular")
     public ResponseEntity<DemandCalculationResponse> calcularProjeto(
             @PathVariable("id") Long id,
             @RequestHeader(value = "Authorization", required = false) String authHeader,

@@ -109,6 +109,7 @@ public final class CanonicalMemorialTestDataFactory {
         req.setTitulo("Edifício Memorial Canônico 100 Apartamentos");
         req.setDescricao("Validação cruzada DIS-NOR-053 Rev. 06 (50x63m² + 50x68m²)");
         req.setTipo("LIGACAO_NOVA");
+        req.setTipoEdificacao("RESIDENCIAL_MULTIFAMILIAR");
         req.setTensaoFornecimento(TENSAO_380_220V);
         req.setPossuiComercial(false);
         req.setPossuiVe(false);
@@ -268,6 +269,7 @@ public final class CanonicalMemorialTestDataFactory {
         req.setTitulo("Torre Empresarial e Residencial Grande Porte 200 Aptos");
         req.setDescricao("Validação cruzada Média Tensão Primária 13,8 kV (Ded > 300 kVA)");
         req.setTipo("LIGACAO_NOVA");
+        req.setTipoEdificacao("MISTO");
         req.setTensaoFornecimento(TENSAO_380_220V);
         req.setPossuiComercial(true);
         req.setPossuiVe(false);

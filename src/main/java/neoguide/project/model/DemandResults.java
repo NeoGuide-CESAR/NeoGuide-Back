@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "demand_results")
+@Table(name = "demand_results_motor")
 public class DemandResults {
 
     @Id

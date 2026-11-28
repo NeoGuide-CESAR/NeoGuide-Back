@@ -147,7 +147,7 @@ class NormativeValidationControllerTest {
     @Test
     @DisplayName("GET /api/v1/projects/{id}/validacao-normativa deve retornar 200 OK com selo de conformidade")
     void deveRetornar200ComSeloQuandoProjetoConsolidado() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoComCalculo.getId() + "/validacao-normativa")
+        mockMvc.perform(get("/api/v1/projects/" + projetoComCalculo.getId() + "/motor/validacao-normativa")
                         .header("Authorization", "Bearer " + tokenDono)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -162,9 +162,9 @@ class NormativeValidationControllerTest {
     }
 
     @Test
-    @DisplayName("GET deve responder também no alias /projects/{id}/validacao-normativa")
+    @DisplayName("GET deve responder também no alias /projects/{id}/motor/validacao-normativa")
     void deveResponderNoAliasComSucesso() throws Exception {
-        mockMvc.perform(get("/projects/" + projetoComCalculo.getId() + "/validacao-normativa")
+        mockMvc.perform(get("/projects/" + projetoComCalculo.getId() + "/motor/validacao-normativa")
                         .header("Authorization", "Bearer " + tokenDono)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -175,7 +175,7 @@ class NormativeValidationControllerTest {
     @Test
     @DisplayName("GET deve retornar 401 Unauthorized quando sem token JWT")
     void deveRetornar401QuandoSemToken() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoComCalculo.getId() + "/validacao-normativa")
+        mockMvc.perform(get("/api/v1/projects/" + projetoComCalculo.getId() + "/motor/validacao-normativa")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -183,7 +183,7 @@ class NormativeValidationControllerTest {
     @Test
     @DisplayName("GET deve retornar 403 Forbidden quando consultado por outro usuário")
     void deveRetornar403QuandoUsuarioNaoEhDono() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoComCalculo.getId() + "/validacao-normativa")
+        mockMvc.perform(get("/api/v1/projects/" + projetoComCalculo.getId() + "/motor/validacao-normativa")
                         .header("Authorization", "Bearer " + tokenOutro)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -192,7 +192,7 @@ class NormativeValidationControllerTest {
     @Test
     @DisplayName("GET deve retornar 404 Not Found para projeto inexistente")
     void deveRetornar404QuandoProjetoInexistente() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/99999/validacao-normativa")
+        mockMvc.perform(get("/api/v1/projects/99999/motor/validacao-normativa")
                         .header("Authorization", "Bearer " + tokenDono)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
@@ -201,7 +201,7 @@ class NormativeValidationControllerTest {
     @Test
     @DisplayName("GET deve retornar 422 Unprocessable Entity quando o projeto ainda não possui cálculo oficial")
     void deveRetornar422QuandoSemCalculoOficial() throws Exception {
-        mockMvc.perform(get("/api/v1/projects/" + projetoSemCalculo.getId() + "/validacao-normativa")
+        mockMvc.perform(get("/api/v1/projects/" + projetoSemCalculo.getId() + "/motor/validacao-normativa")
                         .header("Authorization", "Bearer " + tokenDono)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnprocessableEntity());

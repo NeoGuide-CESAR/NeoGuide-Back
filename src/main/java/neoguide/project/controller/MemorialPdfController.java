@@ -29,7 +29,7 @@ public class MemorialPdfController {
         this.projectRepository = projectRepository;
     }
 
-    @GetMapping(value = "/{id}/memorial-pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/{id}/motor/memorial-pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> downloadMemorialPdf(@PathVariable("id") Long id,
                                                       Authentication authentication) {
         String userEmail = getAuthenticatedUserEmail(authentication);

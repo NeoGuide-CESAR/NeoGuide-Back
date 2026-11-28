@@ -88,7 +88,7 @@ class SimulationControllerTest {
         }
         """;
 
-        mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+        mockMvc.perform(post("/api/v1/simulacao/motor/pre-calculo-etapa")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
@@ -119,7 +119,7 @@ class SimulationControllerTest {
         }
         """;
 
-        mockMvc.perform(post("/simulacao/pre-calculo-etapa")
+        mockMvc.perform(post("/simulacao/motor/pre-calculo-etapa")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
@@ -132,7 +132,7 @@ class SimulationControllerTest {
     @Test
     @DisplayName("POST /api/v1/simulacao/pre-calculo-etapa sem token deve retornar 401 Unauthorized")
     void deveRetornar401QuandoNaoAutenticado() throws Exception {
-        mockMvc.perform(post("/api/v1/simulacao/pre-calculo-etapa")
+        mockMvc.perform(post("/api/v1/simulacao/motor/pre-calculo-etapa")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnauthorized());

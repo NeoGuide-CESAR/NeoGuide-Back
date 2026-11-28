@@ -179,7 +179,7 @@ class NormasETabelasTest {
     @Test
     @DisplayName("Quadro 33: 1 a 10 → 1,00; 11 a 20 → 0,86; acima de 100 → 0,60")
     void quadro33() throws Exception {
-        JsonNode faixas = catalogo("fatores-recarga-ve");
+        JsonNode faixas = catalogo("normas/fatores-recarga-ve");
         assertEquals(8, faixas.size());
         igual("1.00", linha(faixas, l -> l.get("maxVagas").asInt() == 10).get("fatorSimultaneidade"));
         igual("0.86", linha(faixas, l -> l.get("maxVagas").asInt() == 20).get("fatorSimultaneidade"));
@@ -198,7 +198,7 @@ class NormasETabelasTest {
     @Test
     @DisplayName("Tabela 16: 3 bombas → 0,47; acima de 3 → 0,39")
     void tabela16() throws Exception {
-        JsonNode linhas = catalogo("fatores-bombas-piscina");
+        JsonNode linhas = catalogo("normas/fatores-bombas-piscina");
         igual("0.47", linha(linhas, l -> l.get("quantidadeBombas").asInt() == 3).get("fatorDemanda"));
         igual("0.39", linha(linhas, l -> l.get("quantidadeBombas").asInt() == 4).get("fatorDemanda"));
     }
@@ -215,17 +215,17 @@ class NormasETabelasTest {
     @Test
     @DisplayName("Tabela 2: 165 < De ≤ 211 kVA → 240 mm², disjuntor 320 A; 220/127 V tem 10 linhas")
     void tabela2() throws Exception {
-        JsonNode linhas = catalogo("dimensionamento-entrada/380v");
+        JsonNode linhas = catalogo("normas/dimensionamento-entrada/380v");
         JsonNode l211 = linha(linhas, l -> l.get("maxDemandaKva").decimalValue().compareTo(new BigDecimal("211")) == 0);
         assertEquals("240 mm²", l211.get("secaoCondutor").asText());
         assertEquals(320, l211.get("disjuntorCorrenteA").asInt());
-        assertEquals(10, catalogo("dimensionamento-entrada/220v").size());
+        assertEquals(10, catalogo("normas/dimensionamento-entrada/220v").size());
     }
 
     @Test
     @DisplayName("Tabela 3: 260 a 346 kVA → 50 × 5 mm, 595 A")
     void tabela3() throws Exception {
-        JsonNode linhas = catalogo("barramentos-qdg");
+        JsonNode linhas = catalogo("normas/barramentos-qdg");
         JsonNode l346 = linha(linhas, l -> l.get("maxDemandaKva").decimalValue().compareTo(new BigDecimal("346")) == 0);
         assertEquals("50 x 5", l346.get("dimensaoMm").asText());
         assertEquals(595, l346.get("correnteNominalA").asInt());
