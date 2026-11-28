@@ -33,6 +33,7 @@ services:
       neoguide-db:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       SPRING_DATASOURCE_URL: jdbc:postgresql://neoguide-db:5432/neoguide_db
       SPRING_DATASOURCE_USERNAME: neoguide_user
       SPRING_DATASOURCE_PASSWORD: neoguide_password
